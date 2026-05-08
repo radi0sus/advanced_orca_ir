@@ -48,8 +48,8 @@ window.ORCAIR_PLOT = (() => {
       toImageButtonOptions: {
         format: "png",
         filename: buildExportFilename(parsed, "orca-ir-spectrum"),
-        height: 900,
         width: 1400,
+        height: 900,
         scale: 2
       }
     };

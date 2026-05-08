@@ -7,6 +7,7 @@
   const SPECTRUM = window.ORCAIR_SPECTRUM;
   const PEAKS = window.ORCAIR_PEAKS;
   const PLOT = window.ORCAIR_PLOT;
+  const EXPORT = window.ORCAIR_EXPORT;
 
   if (!CONFIG) {
     throw new Error("ORCAIR_CONFIG is not loaded. Check constants.js.");
@@ -30,6 +31,10 @@
 
   if (!PLOT) {
     throw new Error("ORCAIR_PLOT is not loaded. Check plot.js and script order.");
+  }
+
+  if (!EXPORT) {
+    throw new Error("ORCAIR_EXPORT is not loaded. Check export.js and script order.");
   }
 
   if (!window.Plotly) {
@@ -181,22 +186,34 @@
     UI.showToast("View range reset.");
   }
 
-  function handleExportPng() {
-    UI.showToast("PNG export is not implemented yet.");
+  async function handleExportPng() {
+    if (!appState.spectrum) {
+      UI.showToast("No spectrum available for PNG export.");
+      return;
+    }
 
-    /*
-      Later:
-      ORCAIR_EXPORT.exportCurrentPlotPng(...)
-    */
+    try {
+      await EXPORT.exportCurrentPlotPng(appState);
+      UI.showToast("PNG exported.");
+    } catch (error) {
+      console.error(error);
+      UI.showToast("Could not export PNG.");
+    }
   }
 
   function handleExportCsv() {
-    UI.showToast("CSV export is not implemented yet.");
+    if (!appState.spectrum) {
+      UI.showToast("No spectrum available for CSV export.");
+      return;
+    }
 
-    /*
-      Later:
-      ORCAIR_EXPORT.exportSpectrumCsv(...)
-    */
+    try {
+      EXPORT.exportSpectrumCsv(appState);
+      UI.showToast("CSV exported.");
+    } catch (error) {
+      console.error(error);
+      UI.showToast("Could not export CSV.");
+    }
   }
 
   async function handleCopyInfo() {
