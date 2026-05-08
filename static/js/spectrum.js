@@ -151,17 +151,13 @@ window.ORCAIR_SPECTRUM = (() => {
       return [];
     }
 
-    const minFreq = Math.min(...finiteFrequencies);
     const maxFreq = Math.max(...finiteFrequencies);
 
-    let xMin;
-
-    if (spectrumConfig.FORCE_X_MIN_ZERO) {
-      xMin = 0;
-    } else {
-      xMin = Math.floor(Math.min(0, minFreq - padding));
-    }
-
+    /*
+      Keep the lower bound at 0 cm⁻¹, matching the original Python script.
+      The upper bound includes padding for Gaussian broadening.
+    */
+    const xMin = 0;
     const xMax = Math.ceil(Math.max(0, maxFreq + padding));
 
     return rangeInclusive(xMin, xMax, step);

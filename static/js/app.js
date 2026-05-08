@@ -8,6 +8,7 @@
   const PEAKS = window.ORCAIR_PEAKS;
   const PLOT = window.ORCAIR_PLOT;
   const EXPORT = window.ORCAIR_EXPORT;
+  const EXPERIMENTAL_CSV = window.ORCAIR_EXPERIMENTAL_CSV;
 
   if (!CONFIG) {
     throw new Error("ORCAIR_CONFIG is not loaded. Check constants.js.");
@@ -37,16 +38,23 @@
     throw new Error("ORCAIR_EXPORT is not loaded. Check export.js and script order.");
   }
 
+  if (!EXPERIMENTAL_CSV) {
+    throw new Error("ORCAIR_EXPERIMENTAL_CSV is not loaded. Check experimental-csv.js and script order.");
+  }
+
   if (!window.Plotly) {
     throw new Error("Plotly is not loaded. Check static/vendor/plotly-2.35.2.min.js.");
   }
 
   const appState = {
     ui: { ...CONFIG.DEFAULTS },
+
     orcaFile: null,
     experimentalFile: null,
 
     parsedOrca: null,
+    experimentalData: null,
+
     spectrum: null,
     peaks: []
   };
@@ -158,26 +166,60 @@
     }
   }
 
-  function handleExperimentalFileSelected(file) {
+  async function handleExperimentalFileSelected(file) {
     appState.experimentalFile = file;
+    appState.experimentalData = null;
 
     if (!file) {
+      UI.$("showExperimental").checked = false;
+      appState.ui = UI.readControls();
+
       UI.showToast("No experimental file selected.");
+      updateInfoBox();
+      updateFromCurrentState();
       return;
     }
 
-    UI.showToast(`Selected experimental file: ${file.name}`);
+    try {
+      UI.showToast(`Reading experimental CSV: ${file.name}`);
 
-    updateInfoBox();
+      const text = await file.text();
+      const parsedExperimental = EXPERIMENTAL_CSV.parseExperimentalCsv(
+        text,
+        file.name
+      );
 
-    /*
-      Later:
-      parse experimental CSV
-      normalize/scale
-      overlay in plot
-    */
+      appState.experimentalData = parsedExperimental;
+
+      /*
+        User expectation:
+        As soon as an experimental CSV is loaded successfully,
+        enable the overlay automatically.
+      */
+      UI.$("showExperimental").checked = true;
+      appState.ui = UI.readControls();
+
+      if (parsedExperimental.warnings.length > 0) {
+        UI.showToast(parsedExperimental.warnings.join(" "));
+      } else {
+        UI.showToast(`Loaded experimental CSV: ${file.name}`);
+      }
+
+      updateInfoBox();
+      updateFromCurrentState();
+    } catch (error) {
+      console.error(error);
+
+      appState.experimentalData = null;
+
+      UI.$("showExperimental").checked = false;
+      appState.ui = UI.readControls();
+
+      UI.showToast("Could not parse experimental CSV.");
+      updateInfoBox();
+      updateFromCurrentState();
+    }
   }
-
   function handleResetView() {
     UI.resetRangeInputs();
     appState.ui = UI.readControls();
@@ -267,6 +309,7 @@
     const file = appState.orcaFile;
     const parsed = appState.parsedOrca;
     const spectrum = appState.spectrum;
+    const experimental = appState.experimentalData;
 
     const effectiveRangeMin = ui.rangeMin ?? spectrum?.stats?.xMin ?? null;
     const effectiveRangeMax = ui.rangeMax ?? spectrum?.stats?.xMax ?? null;
@@ -301,6 +344,24 @@
       ? `${formatCmValue(spectrum.stats.xMin, 0)} – ${formatCmValue(spectrum.stats.xMax, 0)}`
       : "–";
 
+    const experimentalFilename = experimental?.filename ?? "–";
+
+    const experimentalRange = experimental
+      ? `${experimental.stats.xMin.toFixed(2)} – ${experimental.stats.xMax.toFixed(2)} cm⁻¹`
+      : "–";
+
+    const experimentalPoints = experimental
+      ? experimental.stats.points
+      : "–";
+
+    const experimentalDelimiter = experimental
+      ? experimental.delimiterLabel
+      : "–";
+
+    const experimentalHeader = experimental
+      ? yesNo(experimental.hasHeader)
+      : "–";
+
     const text = [
       `Filename: ${filename}`,
       `ORCA version: ${orcaVersion}`,
@@ -326,7 +387,13 @@
       `Show sticks: ${yesNo(ui.showSticks)}`,
       `Show single Gaussians: ${yesNo(ui.showGaussians)}`,
       `Show grid: ${yesNo(ui.showGrid)}`,
-      `Experimental overlay: ${yesNo(ui.showExperimental)}`
+      ``,
+      `Experimental file: ${experimentalFilename}`,
+      `Experimental overlay: ${yesNo(ui.showExperimental)}`,
+      `Experimental points: ${experimentalPoints}`,
+      `Experimental range: ${experimentalRange}`,
+      `Experimental delimiter: ${experimentalDelimiter}`,
+      `Experimental header: ${experimentalHeader}`
     ].join("\n");
 
     UI.setInfo(text);

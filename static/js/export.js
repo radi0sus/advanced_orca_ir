@@ -87,14 +87,23 @@ window.ORCAIR_EXPORT = (() => {
       return 0;
     }
 
-    const first = Number.isFinite(y[0]) ? y[0] : 0;
-    const last = Number.isFinite(y[y.length - 1]) ? y[y.length - 1] : 0;
+    let minimum = Infinity;
+
+    for (const value of y) {
+      if (Number.isFinite(value) && value < minimum) {
+        minimum = value;
+      }
+    }
+
+    if (!Number.isFinite(minimum)) {
+      return 0;
+    }
 
     /*
-      Same display baseline logic as in plot.js:
-      edge tails are treated as baseline so the transmittance starts at 100 %.
+      Same display baseline logic as in plot.js.
+      Use the global minimum to avoid suppressing weak peaks after shifts.
     */
-    return Math.max(first, last);
+    return minimum;
   }
 
   function unitAbsorptionToTransmittance(value, baseline) {

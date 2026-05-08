@@ -13,6 +13,7 @@ window.ORCAIR_PLOT = (() => {
     const peaks = appState.peaks || [];
     const ui = appState.ui;
     const parsed = appState.parsedOrca;
+    const experimental = appState.experimentalData;
 
     if (!spectrum) {
       return;
@@ -24,7 +25,7 @@ window.ORCAIR_PLOT = (() => {
     const dark = isDarkMode();
 
     const colors = getThemeColors(dark);
-    const traces = buildTraces(spectrum, ui, colors);
+    const traces = buildTraces(spectrum, experimental, ui, colors);
     const annotations = ui.showPeaks
       ? buildPeakAnnotations(spectrum, peaks, ui, colors.peak)
       : [];
@@ -32,6 +33,7 @@ window.ORCAIR_PLOT = (() => {
     const layout = buildLayout({
       title: buildPlotTitle(parsed),
       spectrum,
+      experimental,
       ui,
       annotations,
       colors
@@ -57,14 +59,15 @@ window.ORCAIR_PLOT = (() => {
     Plotly.react(plotElement, traces, layout, config);
   }
 
-  function buildTraces(spectrum, ui, colors) {
+  function buildTraces(spectrum, experimental, ui, colors) {
     const traces = [];
 
     /*
       Draw order:
       1. individual Gaussians in the background
       2. sticks
-      3. summed spectrum on top
+      3. calculated summed spectrum
+      4. experimental overlay
     */
     if (ui.showGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildGaussianTraces(spectrum, ui, colors));
@@ -75,6 +78,10 @@ window.ORCAIR_PLOT = (() => {
     }
 
     traces.push(buildSpectrumTrace(spectrum, ui, colors));
+
+    if (shouldShowExperimental(experimental, ui)) {
+      traces.push(buildExperimentalTrace(experimental, ui, colors));
+    }
 
     return traces;
   }
@@ -87,14 +94,35 @@ window.ORCAIR_PLOT = (() => {
       y,
       type: "scatter",
       mode: "lines",
-      name: ui.spectrumMode === "transmission"
-        ? "Transmittance"
-        : "Absorption",
+      name: "Calculated",
       line: {
         color: colors.spectrum,
-        width: 1.7
+        width: 1.8
       },
       hovertemplate:
+        "Calculated<br>" +
+        "Wavenumber: %{x:.1f} cm⁻¹<br>" +
+        "Y: %{y:.4f}<extra></extra>"
+    };
+  }
+
+  function buildExperimentalTrace(experimental, ui, colors) {
+    const y = getDisplayedExperimentalY(experimental, ui);
+
+    return {
+      x: experimental.x,
+      y,
+      type: "scatter",
+      mode: "lines",
+      name: "Experimental",
+      line: {
+        color: colors.experimental,
+        width: 1.4,
+        dash: "dot"
+      },
+      opacity: 0.95,
+      hovertemplate:
+        "Experimental<br>" +
         "Wavenumber: %{x:.1f} cm⁻¹<br>" +
         "Y: %{y:.4f}<extra></extra>"
     };
@@ -163,7 +191,7 @@ window.ORCAIR_PLOT = (() => {
       name: "Sticks",
       line: {
         color: colors.sticks,
-        width: 1
+        width: 1.1
       },
       opacity: 0.75,
       hoverinfo: "skip",
@@ -221,9 +249,10 @@ window.ORCAIR_PLOT = (() => {
     return labeled;
   }
 
-  function buildLayout({ title, spectrum, ui, annotations, colors }) {
+  function buildLayout({ title, spectrum, experimental, ui, annotations, colors }) {
     const xRange = buildXRange(spectrum, ui);
     const yRange = buildYRange(spectrum, ui);
+    const showLegend = shouldShowExperimental(experimental, ui);
 
     return {
       title: {
@@ -301,9 +330,31 @@ window.ORCAIR_PLOT = (() => {
           : {})
       },
       annotations,
-      showlegend: false,
+      showlegend: showLegend,
+      legend: {
+        x: 0.98,
+        y: 0.02,
+        xanchor: "right",
+        yanchor: "bottom",
+        bgcolor: colors.legendBg,
+        bordercolor: colors.legendBorder,
+        borderwidth: 1,
+        font: {
+          size: 12,
+          color: colors.text
+        }
+      },
       hovermode: "closest"
     };
+  }
+
+  function shouldShowExperimental(experimental, ui) {
+    return Boolean(
+      ui.showExperimental &&
+      experimental &&
+      Array.isArray(experimental.x) &&
+      experimental.x.length > 0
+    );
   }
 
   function getDisplayedSpectrumY(spectrum, ui) {
@@ -316,6 +367,18 @@ window.ORCAIR_PLOT = (() => {
     }
 
     return spectrum.absorptionY;
+  }
+
+  function getDisplayedExperimentalY(experimental, ui) {
+    if (ui.spectrumMode === "transmission") {
+      return experimental.transmittanceY;
+    }
+
+    const normFactor = Number(ui.normFactor) > 0 ? Number(ui.normFactor) : 1;
+
+    return experimental.normalizedAbsorbanceY.map((value) => {
+      return value * normFactor;
+    });
   }
 
   function getDisplayedGaussianY(gaussian, spectrum, ui) {
@@ -364,14 +427,24 @@ window.ORCAIR_PLOT = (() => {
       return 0;
     }
 
-    const first = Number.isFinite(y[0]) ? y[0] : 0;
-    const last = Number.isFinite(y[y.length - 1]) ? y[y.length - 1] : 0;
+    let minimum = Infinity;
+
+    for (const value of y) {
+      if (Number.isFinite(value) && value < minimum) {
+        minimum = value;
+      }
+    }
+
+    if (!Number.isFinite(minimum)) {
+      return 0;
+    }
 
     /*
-      Use the larger edge tail as display baseline.
-      This makes the spectrum edges start at or clamp to 100 %.
+      Use the global minimum as display baseline.
+      This avoids suppressing weak peaks when a wavenumber shift moves
+      strong Gaussian tails close to the spectrum edges.
     */
-    return Math.max(first, last);
+    return minimum;
   }
 
   function unitAbsorptionToTransmittance(value, baseline) {
@@ -459,7 +532,10 @@ window.ORCAIR_PLOT = (() => {
         spectrum: "#7fb3d5",
         sticks: "#f1948a",
         gaussian: "rgba(159,176,191,0.55)",
-        peak: "#f1948a"
+        peak: "#f1948a",
+        experimental: "#f7dc6f",
+        legendBg: "rgba(26,34,43,0.90)",
+        legendBorder: "rgba(230,237,243,0.15)"
       };
     }
 
@@ -472,7 +548,10 @@ window.ORCAIR_PLOT = (() => {
       spectrum: "#1a5276",
       sticks: "#922b21",
       gaussian: "rgba(91,107,121,0.45)",
-      peak: "#922b21"
+      peak: "#922b21",
+      experimental: "#111827",
+      legendBg: "rgba(255,255,255,0.88)",
+      legendBorder: "rgba(31,42,51,0.15)"
     };
   }
 
