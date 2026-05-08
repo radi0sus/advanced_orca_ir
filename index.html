@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ORCA IR Spectrum Viewer</title>
+
+  <link rel="stylesheet" href="./static/css/style.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- ================================================================ -->
+    <!-- Sidebar                                                          -->
+    <!-- ================================================================ -->
+
+    <aside class="sidebar">
+      <header class="app-brand">
+        <h1>ORCA IR Viewer</h1>
+        <p>
+          Local browser-based viewer for calculated IR spectra from ORCA output files.
+        </p>
+      </header>
+
+      <!-- File -->
+      <section class="sidebar-section">
+        <h2 class="section-title">File</h2>
+
+        <div class="control">
+          <label for="orcaFile">ORCA output file</label>
+          <input id="orcaFile" type="file" accept=".out,.log,.txt" />
+          <small>
+            Expects an ORCA output file containing an <code>IR SPECTRUM</code> section.
+          </small>
+        </div>
+
+        <div id="statusText" class="status-box">
+          No ORCA file loaded.
+        </div>
+
+        <div id="warningPanel" class="warning-box hidden">
+          <strong>Warning:</strong>
+          <span id="warningText">
+            Negative frequencies / imaginary modes detected. Spectrum generation continues.
+          </span>
+        </div>
+      </section>
+
+      <!-- Display -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Display</h2>
+
+        <div class="control">
+          <label>Spectrum mode</label>
+
+          <div class="segmented-control two">
+            <input
+              type="radio"
+              name="spectrumMode"
+              id="modeAbs"
+              value="absorption"
+            />
+            <label for="modeAbs">Absorption</label>
+
+            <input
+              type="radio"
+              name="spectrumMode"
+              id="modeTrans"
+              value="transmission"
+              checked
+            />
+            <label for="modeTrans">Transmission</label>
+          </div>
+        </div>
+
+        <div class="control">
+          <label>Wavenumber axis</label>
+
+          <div class="segmented-control two">
+            <input
+              type="radio"
+              name="axisDirection"
+              id="axisHighLow"
+              value="highToLow"
+              checked
+            />
+            <label for="axisHighLow">High → Low</label>
+
+            <input
+              type="radio"
+              name="axisDirection"
+              id="axisLowHigh"
+              value="lowToHigh"
+            />
+            <label for="axisLowHigh">Low → High</label>
+          </div>
+        </div>
+
+        <div class="control">
+          <label>Displayed range / cm⁻¹</label>
+
+          <div class="range-inputs">
+            <input id="rangeMin" type="number" placeholder="400" />
+            <input id="rangeMax" type="number" placeholder="4000" />
+          </div>
+
+          <small>
+            Stored internally as min/max. The selected axis direction only affects plotting.
+          </small>
+        </div>
+
+        <button id="resetViewBtn" type="button" class="btn subtle">
+          Reset view
+        </button>
+      </section>
+
+      <!-- Spectrum -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Spectrum</h2>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="linewidth">Line width / FWHM</label>
+            <span id="linewidthValue" class="range-value">15 cm⁻¹</span>
+          </div>
+
+          <input
+            id="linewidth"
+            type="range"
+            min="1"
+            max="100"
+            step="1"
+            value="15"
+          />
+        </div>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="wnShift">Wavenumber shift</label>
+            <span id="wnShiftValue" class="range-value">0 cm⁻¹</span>
+          </div>
+
+          <input
+            id="wnShift"
+            type="range"
+            min="-300"
+            max="300"
+            step="1"
+            value="0"
+          />
+        </div>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="normFactor">Normalization factor</label>
+            <span id="normFactorValue" class="range-value">×1.0</span>
+          </div>
+
+          <input
+            id="normFactor"
+            type="range"
+            min="0.1"
+            max="200"
+            step="0.1"
+            value="1"
+          />
+
+          <small>
+            Default: the maximum intensity is normalized to 1.
+          </small>
+        </div>
+      </section>
+
+      <!-- Plot elements -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Plot elements</h2>
+
+        <div class="toggle-list">
+          <label class="toggle-row" for="showPeaks">
+            <span>
+              Peaks
+              <small>Show peak labels in the plot</small>
+            </span>
+
+            <span class="switch">
+              <input id="showPeaks" type="checkbox" checked />
+              <span class="slider"></span>
+            </span>
+          </label>
+
+          <label class="toggle-row" for="showSticks">
+            <span>
+              Sticks
+              <small>Show ORCA modes as a stick spectrum</small>
+            </span>
+
+            <span class="switch">
+              <input id="showSticks" type="checkbox" checked />
+              <span class="slider"></span>
+            </span>
+          </label>
+
+          <label class="toggle-row" for="showGaussians">
+            <span>
+              Single Gaussians
+              <small>Show individual Gaussian functions</small>
+            </span>
+
+            <span class="switch">
+              <input id="showGaussians" type="checkbox" />
+              <span class="slider"></span>
+            </span>
+          </label>
+
+          <label class="toggle-row" for="showGrid">
+            <span>
+              Grid
+              <small>Show x-axis helper grid lines</small>
+            </span>
+
+            <span class="switch">
+              <input id="showGrid" type="checkbox" checked />
+              <span class="slider"></span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Peak detection -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Peak detection</h2>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="peakProminence">Prominence</label>
+            <span id="peakProminenceValue" class="range-value">0.050</span>
+          </div>
+
+          <input
+            id="peakProminence"
+            type="range"
+            min="0.001"
+            max="1"
+            step="0.001"
+            value="0.05"
+          />
+        </div>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="peakDistance">Minimum peak distance</label>
+            <span id="peakDistanceValue" class="range-value">15 cm⁻¹</span>
+          </div>
+
+          <input
+            id="peakDistance"
+            type="range"
+            min="1"
+            max="100"
+            step="1"
+            value="15"
+          />
+        </div>
+      </section>
+
+      <!-- Experiment -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Experiment</h2>
+
+        <div class="control">
+          <label for="expFile">Experimental CSV</label>
+          <input id="expFile" type="file" accept=".csv,.txt,.dat" />
+
+          <small>
+            Optional overlay. Expects two columns: wavenumber and y value.
+          </small>
+        </div>
+
+        <label class="toggle-row" for="showExperimental">
+          <span>
+            Experimental overlay
+            <small>Overlay calculated and experimental spectra</small>
+          </span>
+
+          <span class="switch">
+            <input id="showExperimental" type="checkbox" />
+            <span class="slider"></span>
+          </span>
+        </label>
+      </section>
+
+      <!-- Export -->
+      <section class="sidebar-section">
+        <h2 class="section-title">Export</h2>
+
+        <div class="button-stack">
+          <button id="exportPngBtn" type="button" class="btn primary">
+            PNG current view
+          </button>
+
+          <button id="exportCsvBtn" type="button" class="btn secondary">
+            CSV full range
+          </button>
+        </div>
+
+        <small>
+          CSV delimiter will be defined as a constant: <code>","</code>
+        </small>
+      </section>
+    </aside>
+
+    <!-- ================================================================ -->
+    <!-- Main content                                                     -->
+    <!-- ================================================================ -->
+
+    <main class="main-content">
+      <header class="plot-header">
+        <div>
+          <h2>IR spectrum</h2>
+          <p>
+            Live-updated Gaussian-broadened ORCA IR spectrum.
+          </p>
+        </div>
+      </header>
+
+      <section class="plot-card">
+        <div id="plot" class="plot-area"></div>
+      </section>
+
+      <section class="analysis-grid">
+        <!-- Info / metadata -->
+        <details class="details-panel analysis-panel" open>
+          <summary>Info & metadata</summary>
+
+          <div class="details-body">
+            <pre id="infoBox" class="mono-box">Filename: –
+ORCA version: –
+IR section: –
+Modes parsed: –
+Imaginary modes: –
+Frequency range: –
+Max intensity: –
+FWHM: 15 cm⁻¹
+Shift: 0 cm⁻¹
+Normalization: max = 1, factor = 1.0</pre>
+
+            <button id="copyInfoBtn" type="button" class="btn subtle full">
+              Copy info
+            </button>
+          </div>
+        </details>
+
+        <!-- Peaks -->
+        <details class="details-panel analysis-panel" open>
+          <summary>Peaks</summary>
+
+          <div class="details-body">
+            <pre id="peaksBox" class="mono-box">No peaks detected.</pre>
+
+            <button id="copyPeaksBtn" type="button" class="btn subtle full">
+              Copy peaks
+            </button>
+          </div>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="./static/vendor/plotly-2.35.2.min.js"></script>
+
+  <script src="./static/js/constants.js"></script>
+  <script src="./static/js/ui.js"></script>
+  <script src="./static/js/orca-import.js"></script>
+  <script src="./static/js/spectrum.js"></script>
+  <script src="./static/js/peak-detection.js"></script>
+  <script src="./static/js/plot.js"></script>
+  <script src="./static/js/app.js"></script>
+</body>
+</html>
