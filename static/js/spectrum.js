@@ -32,7 +32,9 @@ window.ORCAIR_SPECTRUM = (() => {
     const x = buildXRange(shiftedFrequencies, config.SPECTRUM);
     const rawSumY = new Array(x.length).fill(0);
 
-    const shouldStoreSingleGaussians = Boolean(uiState.showGaussians);
+    const shouldStoreSingleGaussians = Boolean(
+      uiState.showGaussians || uiState.showFilledGaussians
+    );
     const rawGaussians = shouldStoreSingleGaussians ? [] : null;
 
     for (let i = 0; i < shiftedFrequencies.length; i++) {

@@ -386,6 +386,7 @@
       `Show peaks: ${yesNo(ui.showPeaks)}`,
       `Show sticks: ${yesNo(ui.showSticks)}`,
       `Show single Gaussians: ${yesNo(ui.showGaussians)}`,
+      `Show filled Gaussians: ${yesNo(ui.showFilledGaussians)}`,
       `Show grid: ${yesNo(ui.showGrid)}`,
       ``,
       `Experimental file: ${experimentalFilename}`,

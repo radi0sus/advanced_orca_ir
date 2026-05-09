@@ -57,6 +57,7 @@ window.ORCAIR_UI = (() => {
       showPeaks: $("showPeaks").checked,
       showSticks: $("showSticks").checked,
       showGaussians: $("showGaussians").checked,
+      showFilledGaussians: $("showFilledGaussians").checked,
       showGrid: $("showGrid").checked,
 
       peakProminence: Number($("peakProminence").value),
@@ -101,6 +102,9 @@ window.ORCAIR_UI = (() => {
     if (state.showPeaks !== undefined) $("showPeaks").checked = state.showPeaks;
     if (state.showSticks !== undefined) $("showSticks").checked = state.showSticks;
     if (state.showGaussians !== undefined) $("showGaussians").checked = state.showGaussians;
+    if (state.showFilledGaussians !== undefined) {
+      $("showFilledGaussians").checked = state.showFilledGaussians;
+    }
     if (state.showGrid !== undefined) $("showGrid").checked = state.showGrid;
     if (state.showExperimental !== undefined) {
       $("showExperimental").checked = state.showExperimental;
@@ -129,6 +133,7 @@ window.ORCAIR_UI = (() => {
       "showPeaks",
       "showSticks",
       "showGaussians",
+      "showFilledGaussians",
       "showGrid",
 
       "peakProminence",

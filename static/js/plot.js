@@ -64,11 +64,16 @@ window.ORCAIR_PLOT = (() => {
 
     /*
       Draw order:
-      1. individual Gaussians in the background
-      2. sticks
-      3. calculated summed spectrum
-      4. experimental overlay
+      1. filled Gaussian areas in the background
+      2. individual Gaussian lines
+      3. sticks
+      4. calculated summed spectrum
+      5. experimental overlay
     */
+    if (ui.showFilledGaussians && spectrum.gaussians.length > 0) {
+      traces.push(...buildFilledGaussianTraces(spectrum, ui));
+    }
+
     if (ui.showGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildGaussianTraces(spectrum, ui, colors));
     }
@@ -109,22 +114,66 @@ window.ORCAIR_PLOT = (() => {
   function buildExperimentalTrace(experimental, ui, colors) {
     const y = getDisplayedExperimentalY(experimental, ui);
 
+    if (ui.spectrumMode === "transmission") {
+      return buildExperimentalFilledTrace({
+        x: experimental.x,
+        y,
+        baselineY: 100,
+        colors,
+        name: "Experimental"
+      });
+    }
+
     return {
       x: experimental.x,
       y,
       type: "scatter",
       mode: "lines",
+      fill: "tozeroy",
+      fillcolor: colors.experimentalFill,
       name: "Experimental",
       line: {
         color: colors.experimental,
-        width: 1.4,
-        dash: "dot"
+        width: 1.2,
+        dash: "solid"
       },
-      opacity: 0.95,
+      opacity: 1,
       hovertemplate:
         "Experimental<br>" +
         "Wavenumber: %{x:.1f} cm⁻¹<br>" +
         "Y: %{y:.4f}<extra></extra>"
+    };
+  }
+
+  function buildExperimentalFilledTrace({ x, y, baselineY, colors, name }) {
+    const polygonX = [];
+    const polygonY = [];
+
+    for (let i = 0; i < x.length; i++) {
+      polygonX.push(x[i]);
+      polygonY.push(y[i]);
+    }
+
+    for (let i = x.length - 1; i >= 0; i--) {
+      polygonX.push(x[i]);
+      polygonY.push(baselineY);
+    }
+
+    return {
+      x: polygonX,
+      y: polygonY,
+      type: "scatter",
+      mode: "lines",
+      fill: "toself",
+      fillcolor: colors.experimentalFill,
+      name,
+      line: {
+        color: colors.experimental,
+        width: 1.2,
+        dash: "solid"
+      },
+      opacity: 1,
+      hoverinfo: "skip"
     };
   }
 
@@ -161,6 +210,88 @@ window.ORCAIR_PLOT = (() => {
         showlegend: false
       }
     ];
+  }
+
+  function buildFilledGaussianTraces(spectrum, ui) {
+    const traces = [];
+
+    if (!Array.isArray(spectrum.gaussians) || spectrum.gaussians.length === 0) {
+      return traces;
+    }
+
+    const centers = spectrum.gaussians
+      .map((gaussian) => gaussian.center)
+      .filter(Number.isFinite);
+
+    const minCenter = centers.length > 0 ? Math.min(...centers) : 0;
+    const maxCenter = centers.length > 0 ? Math.max(...centers) : 1;
+
+    for (const gaussian of spectrum.gaussians) {
+      if (!Number.isFinite(gaussian.rawIntensity) || gaussian.rawIntensity <= 0) {
+        continue;
+      }
+
+      const gaussianY = getDisplayedGaussianY(gaussian, spectrum, ui);
+      const baselineY = ui.spectrumMode === "transmission" ? 100 : 0;
+
+      const x = [];
+      const y = [];
+
+      for (let i = 0; i < spectrum.x.length; i++) {
+        x.push(spectrum.x[i]);
+        y.push(gaussianY[i]);
+      }
+
+      for (let i = spectrum.x.length - 1; i >= 0; i--) {
+        x.push(spectrum.x[i]);
+        y.push(baselineY);
+      }
+
+      const fillColor = gaussianRainbowColor(
+        gaussian.center,
+        minCenter,
+        maxCenter,
+        0.16
+      );
+
+      const lineColor = gaussianRainbowColor(
+        gaussian.center,
+        minCenter,
+        maxCenter,
+        0.35
+      );
+
+      traces.push({
+        x,
+        y,
+        type: "scatter",
+        mode: "lines",
+        fill: "toself",
+        fillcolor: fillColor,
+        name: `Filled Gaussian ${gaussian.mode}`,
+        line: {
+          color: lineColor,
+          width: 0.45
+        },
+        hoverinfo: "skip",
+        showlegend: false
+      });
+    }
+
+    return traces;
+  }
+
+  function gaussianRainbowColor(center, minCenter, maxCenter, alpha) {
+    const denominator = Math.max(maxCenter - minCenter, 1e-12);
+    const relative = clamp((center - minCenter) / denominator, 0, 1);
+
+    /*
+      Low wavenumbers: violet/blue
+      High wavenumbers: red/orange
+    */
+    const hue = 260 - relative * 260;
+
+    return `hsla(${hue.toFixed(1)}, 85%, 55%, ${alpha})`;
   }
 
   function buildStickTrace(spectrum, ui, colors) {
@@ -632,7 +763,8 @@ window.ORCAIR_PLOT = (() => {
         sticks: "#f1948a",
         gaussian: "rgba(159,176,191,0.55)",
         peak: "#f1948a",
-        experimental: "#f7dc6f",
+        experimental: "#d1d5db",
+        experimentalFill: "rgba(209,213,219,0.08)",
         legendBg: "rgba(26,34,43,0.90)",
         legendBorder: "rgba(230,237,243,0.15)"
       };
@@ -648,7 +780,8 @@ window.ORCAIR_PLOT = (() => {
       sticks: "#922b21",
       gaussian: "rgba(91,107,121,0.45)",
       peak: "#922b21",
-      experimental: "#111827",
+      experimental: "#4b5563",
+      experimentalFill: "rgba(75,85,99,0.07)",
       legendBg: "rgba(255,255,255,0.88)",
       legendBorder: "rgba(31,42,51,0.15)"
     };
