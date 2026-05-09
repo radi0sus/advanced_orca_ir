@@ -25,6 +25,7 @@ window.ORCAIR_CONFIG = Object.freeze({
     showGaussians: false,
     showGrid: true,
     showExperimental: false,
+    normalizeExperimental: true,
 
     rangeMin: null,
     rangeMax: null
@@ -52,6 +53,6 @@ window.ORCAIR_CONFIG = Object.freeze({
     noSpectrumLoaded: "No spectrum loaded.",
     noPeaksDetected: "No peaks detected.",
     defaultWarning:
-      "Negative frequencies / imaginary modes detected. Spectrum generation continues."
+      "Negative frequencies / imaginary modes detected."
   })
 });

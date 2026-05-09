@@ -390,6 +390,7 @@
       ``,
       `Experimental file: ${experimentalFilename}`,
       `Experimental overlay: ${yesNo(ui.showExperimental)}`,
+      `Normalize experimental: ${yesNo(ui.normalizeExperimental)}`,
       `Experimental points: ${experimentalPoints}`,
       `Experimental range: ${experimentalRange}`,
       `Experimental delimiter: ${experimentalDelimiter}`,

@@ -19,7 +19,7 @@
       <header class="app-brand">
         <h1>ORCA IR Viewer</h1>
         <p>
-          Local browser-based viewer for calculated IR spectra from ORCA output files.
+          View, compare, and export IR spectra from ORCA output files.
         </p>
       </header>
 
@@ -192,7 +192,7 @@
           <label class="toggle-row" for="showSticks">
             <span>
               Sticks
-              <small>Show ORCA modes as a stick spectrum</small>
+              <small>Show calculated modes as sticks</small>
             </span>
 
             <span class="switch">
@@ -277,17 +277,31 @@
           </small>
         </div>
 
-        <label class="toggle-row" for="showExperimental">
-          <span>
-            Experimental overlay
-            <small>Overlay calculated and experimental spectra</small>
-          </span>
+        <div class="toggle-list">
+          <label class="toggle-row" for="showExperimental">
+            <span>
+              Experimental overlay
+              <small>Overlay calculated and experimental spectra</small>
+            </span>
 
-          <span class="switch">
-            <input id="showExperimental" type="checkbox" />
-            <span class="slider"></span>
-          </span>
-        </label>
+            <span class="switch">
+              <input id="showExperimental" type="checkbox" />
+              <span class="slider"></span>
+            </span>
+          </label>
+
+          <label class="toggle-row" for="normalizeExperimental">
+            <span>
+              Normalize experimental
+              <small>Normalize baseline and band intensities</small>
+            </span>
+
+            <span class="switch">
+              <input id="normalizeExperimental" type="checkbox" checked />
+              <span class="slider"></span>
+            </span>
+          </label>
+        </div>
       </section>
 
       <!-- Export -->
@@ -319,7 +333,7 @@
         <div>
           <h2>IR spectrum</h2>
           <p>
-            Live-updated Gaussian-broadened ORCA IR spectrum.
+            Gaussian-broadened IR spectrum.
           </p>
         </div>
       </header>

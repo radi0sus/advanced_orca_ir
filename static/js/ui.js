@@ -62,7 +62,8 @@ window.ORCAIR_UI = (() => {
       peakProminence: Number($("peakProminence").value),
       peakDistance: Number($("peakDistance").value),
 
-      showExperimental: $("showExperimental").checked
+      showExperimental: $("showExperimental").checked,
+      normalizeExperimental: $("normalizeExperimental").checked
     };
   }
 
@@ -104,6 +105,9 @@ window.ORCAIR_UI = (() => {
     if (state.showExperimental !== undefined) {
       $("showExperimental").checked = state.showExperimental;
     }
+    if (state.normalizeExperimental !== undefined) {
+      $("normalizeExperimental").checked = state.normalizeExperimental;
+    }
 
     updateSliderLabels();
   }
@@ -130,7 +134,8 @@ window.ORCAIR_UI = (() => {
       "peakProminence",
       "peakDistance",
 
-      "showExperimental"
+      "showExperimental",
+      "normalizeExperimental"
     ];
 
     for (const id of ids) {

@@ -370,6 +370,27 @@ window.ORCAIR_PLOT = (() => {
   }
 
   function getDisplayedExperimentalY(experimental, ui) {
+    if (ui.normalizeExperimental) {
+      const baselineNormalizedT = normalizeExperimentalTransmittance(
+        experimental.transmittanceY
+      );
+
+      const absorbanceY = transmittanceToAbsorbance(baselineNormalizedT);
+      const normalizedAbsorbanceY = normalizeArray(absorbanceY);
+
+      if (ui.spectrumMode === "transmission") {
+        return normalizedAbsorbanceY.map((value) => {
+          return 100 - value * 100;
+        });
+      }
+
+      const normFactor = Number(ui.normFactor) > 0 ? Number(ui.normFactor) : 1;
+
+      return normalizedAbsorbanceY.map((value) => {
+        return value * normFactor;
+      });
+    }
+
     if (ui.spectrumMode === "transmission") {
       return experimental.transmittanceY;
     }
@@ -379,6 +400,84 @@ window.ORCAIR_PLOT = (() => {
     return experimental.normalizedAbsorbanceY.map((value) => {
       return value * normFactor;
     });
+  }
+  
+  function normalizeExperimentalTransmittance(transmittanceY) {
+    if (!Array.isArray(transmittanceY) || transmittanceY.length === 0) {
+      return [];
+    }
+
+    const finiteValues = transmittanceY
+      .map(Number)
+      .filter(Number.isFinite);
+
+    if (finiteValues.length === 0) {
+      return transmittanceY.map(() => 100);
+    }
+
+    /*
+      Use a high percentile instead of max to avoid single-point outliers.
+      This maps the experimental baseline approximately to 100 %T.
+    */
+    const baseline = percentile(finiteValues, 0.98);
+
+    if (!Number.isFinite(baseline) || baseline <= 0) {
+      return transmittanceY;
+    }
+
+    return transmittanceY.map((value) => {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return NaN;
+      }
+
+      return clamp(number / baseline * 100, 0, 100);
+    });
+  }
+
+  function transmittanceToAbsorbance(transmittanceY) {
+    return transmittanceY.map((t) => {
+      const safeT = Math.max(Number(t), 1e-9);
+      return -Math.log10(safeT / 100);
+    });
+  }
+
+  function normalizeArray(values) {
+    const finiteValues = values.filter(Number.isFinite);
+
+    if (finiteValues.length === 0) {
+      return values.map(() => 0);
+    }
+
+    const maxValue = Math.max(...finiteValues);
+
+    if (maxValue <= 0) {
+      return values.map(() => 0);
+    }
+
+    return values.map((value) => {
+      return Number.isFinite(value) ? value / maxValue : 0;
+    });
+  }
+
+  function percentile(values, p) {
+    if (!Array.isArray(values) || values.length === 0) {
+      return NaN;
+    }
+
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = (sorted.length - 1) * p;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+
+    if (lower === upper) {
+      return sorted[lower];
+    }
+
+    const weight = index - lower;
+
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
   }
 
   function getDisplayedGaussianY(gaussian, spectrum, ui) {
