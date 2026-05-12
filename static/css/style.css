@@ -120,6 +120,7 @@ button {
   display: grid;
   grid-template-rows: auto auto auto;
   gap: 12px;
+  align-content: start;
 }
 
 /* -------------------------------------------------------------------------- */
