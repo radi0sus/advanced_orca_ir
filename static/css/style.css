@@ -189,7 +189,8 @@ small {
 /* -------------------------------------------------------------------------- */
 
 input[type="file"],
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -344,6 +345,31 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: 0;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Slider + number controls                                                   */
+/* -------------------------------------------------------------------------- */
+
+.slider-number-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px;
+  gap: 8px;
+  align-items: center;
+}
+
+.slider-number-row input[type="number"],
+.slider-number-row input[type="text"] {
+  padding: 7px 8px;
+  text-align: right;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+  font-size: 0.82rem;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -685,6 +711,10 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .range-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .slider-number-row {
     grid-template-columns: 1fr;
   }
 

@@ -170,6 +170,36 @@
             Default: the maximum intensity is normalized to 1.
           </small>
         </div>
+
+        <div class="control">
+          <div class="range-header">
+            <label for="frequencyScaleFactor">Frequency scaling factor</label>
+            <span id="frequencyScaleFactorValue" class="range-value">×1.0000</span>
+          </div>
+
+          <div class="slider-number-row">
+            <input
+              id="frequencyScaleFactor"
+              type="range"
+              min="0.9"
+              max="1.1"
+              step="0.0001"
+              value="1"
+            />
+
+            <input
+              id="frequencyScaleFactorInput"
+              type="text"
+              inputmode="decimal"
+              value="1.0000"
+              aria-label="Frequency scaling factor value"
+            />
+          </div>
+
+          <small>
+           Scaling factor according to NIST CCCBDB
+          </small>
+        </div>
       </section>
 
       <!-- Plot elements -->
@@ -369,6 +399,11 @@ Frequency range: –
 Max intensity: –
 FWHM: 15 cm⁻¹
 Shift: 0 cm⁻¹
+Frequency scaling ORCA factor found: –
+Frequency scaling ORCA factor: –
+Frequency scaling already applied by ORCA: –
+Frequency scaling app factor: 1.000000
+Frequency scaling effective factor: 1.000000
 Normalization: max = 1, factor = 1.0</pre>
 
             <button id="copyInfoBtn" type="button" class="btn subtle full">

@@ -28,6 +28,110 @@ window.ORCAIR_UI = (() => {
     return `${sign}${n}${unit}`;
   }
 
+  function getFrequencyScaleLimits() {
+    const config = window.ORCAIR_CONFIG;
+
+    return {
+      min: config?.LIMITS?.frequencyScaleFactorMin ?? 0.9,
+      max: config?.LIMITS?.frequencyScaleFactorMax ?? 1.1,
+      fallback: config?.DEFAULTS?.frequencyScaleFactor ?? 1.0
+    };
+  }
+
+  function clampNumber(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function parseFlexibleNumber(value) {
+    if (value === null || value === undefined) {
+      return NaN;
+    }
+
+    const text = String(value)
+      .trim()
+      .replace(",", ".");
+
+    if (text === "") {
+      return NaN;
+    }
+
+    const number = Number(text);
+
+    return Number.isFinite(number) ? number : NaN;
+  }
+
+  function sanitizeFrequencyScaleFactor(value) {
+    const limits = getFrequencyScaleLimits();
+    const number = parseFlexibleNumber(value);
+
+    if (!Number.isFinite(number)) {
+      return limits.fallback;
+    }
+
+    return clampNumber(number, limits.min, limits.max);
+  }
+
+  function readFrequencyScaleFactorFromControls() {
+    const input = $("frequencyScaleFactorInput");
+    const slider = $("frequencyScaleFactor");
+
+    if (input) {
+      const inputValue = parseFlexibleNumber(input.value);
+
+      if (Number.isFinite(inputValue)) {
+        return sanitizeFrequencyScaleFactor(inputValue);
+      }
+    }
+
+    if (slider) {
+      return sanitizeFrequencyScaleFactor(slider.value);
+    }
+
+    return getFrequencyScaleLimits().fallback;
+  }
+
+  function setFrequencyScaleFactorControl(value) {
+    const factor = sanitizeFrequencyScaleFactor(value);
+    const formatted = factor.toFixed(4);
+
+    const slider = $("frequencyScaleFactor");
+    const input = $("frequencyScaleFactorInput");
+    const label = $("frequencyScaleFactorValue");
+
+    if (slider) {
+      slider.value = formatted;
+    }
+
+    if (input) {
+      input.value = formatted;
+    }
+
+    if (label) {
+      label.textContent = `×${formatted}`;
+    }
+  }
+
+  function syncFrequencyScaleFactorControls(sourceId = null) {
+    const slider = $("frequencyScaleFactor");
+    const input = $("frequencyScaleFactorInput");
+
+    if (!slider && !input) {
+      return;
+    }
+
+    let value;
+
+    if (sourceId === "frequencyScaleFactor" && slider) {
+      value = slider.value;
+    } else if (sourceId === "frequencyScaleFactorInput" && input) {
+      value = input.value;
+    } else {
+      value = readFrequencyScaleFactorFromControls();
+    }
+
+    setFrequencyScaleFactorControl(value);
+  }
+
   function updateSliderLabels() {
     const linewidth = Number($("linewidth").value);
     const wnShift = Number($("wnShift").value);
@@ -35,9 +139,12 @@ window.ORCAIR_UI = (() => {
     const peakProminence = Number($("peakProminence").value);
     const peakDistance = Number($("peakDistance").value);
 
+    const frequencyScaleFactor = readFrequencyScaleFactorFromControls();
+
     $("linewidthValue").textContent = `${linewidth} cm⁻¹`;
     $("wnShiftValue").textContent = `${formatSignedNumber(wnShift, " cm⁻¹")}`;
     $("normFactorValue").textContent = `×${normFactor.toFixed(1)}`;
+    $("frequencyScaleFactorValue").textContent = `×${frequencyScaleFactor.toFixed(4)}`;
     $("peakProminenceValue").textContent = peakProminence.toFixed(3);
     $("peakDistanceValue").textContent = `${peakDistance} cm⁻¹`;
   }
@@ -53,6 +160,7 @@ window.ORCAIR_UI = (() => {
       linewidth: Number($("linewidth").value),
       wnShift: Number($("wnShift").value),
       normFactor: Number($("normFactor").value),
+      frequencyScaleFactor: readFrequencyScaleFactorFromControls(),
 
       showPeaks: $("showPeaks").checked,
       showSticks: $("showSticks").checked,
@@ -90,6 +198,10 @@ window.ORCAIR_UI = (() => {
     if (state.linewidth !== undefined) $("linewidth").value = state.linewidth;
     if (state.wnShift !== undefined) $("wnShift").value = state.wnShift;
     if (state.normFactor !== undefined) $("normFactor").value = state.normFactor;
+
+    if (state.frequencyScaleFactor !== undefined) {
+      setFrequencyScaleFactorControl(state.frequencyScaleFactor);
+    }
 
     if (state.peakProminence !== undefined) {
       $("peakProminence").value = state.peakProminence;
@@ -129,6 +241,8 @@ window.ORCAIR_UI = (() => {
       "linewidth",
       "wnShift",
       "normFactor",
+      "frequencyScaleFactor",
+      "frequencyScaleFactorInput",
 
       "showPeaks",
       "showSticks",
@@ -150,6 +264,13 @@ window.ORCAIR_UI = (() => {
       const eventName = el.type === "range" ? "input" : "change";
 
       el.addEventListener(eventName, () => {
+        if (
+          id === "frequencyScaleFactor" ||
+          id === "frequencyScaleFactorInput"
+        ) {
+          syncFrequencyScaleFactorControls(id);
+        }
+
         updateSliderLabels();
         callback(readControls());
       });

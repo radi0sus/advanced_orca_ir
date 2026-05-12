@@ -8,6 +8,7 @@ window.ORCAIR_ORCA_IMPORT = (() => {
     const lines = text.split(/\r?\n/);
 
     const versionInfo = detectOrcaVersion(text);
+    const frequencyScaling = parseFrequencyScalingFactor(lines);
     const vibrational = parseVibrationalFrequencies(lines);
     const ir = parseIRSpectrum(lines, versionInfo.major);
 
@@ -27,6 +28,12 @@ window.ORCAIR_ORCA_IMPORT = (() => {
 
     const warnings = [];
 
+    if (frequencyScaling.invalid) {
+      warnings.push(
+        "Invalid ORCA frequency scaling factor detected. Assuming 1.0."
+      );
+    }
+
     if (imaginaryModes.length > 0) {
       warnings.push(
         `${imaginaryModes.length} negative frequencies / imaginary modes detected. Spectrum generation continues.`
@@ -42,6 +49,8 @@ window.ORCAIR_ORCA_IMPORT = (() => {
 
       orcaVersion: versionInfo.version,
       orcaMajorVersion: versionInfo.major,
+
+      frequencyScaling,
 
       irSectionFound: true,
       irHeader: ir.headerTokens,
@@ -84,6 +93,53 @@ window.ORCAIR_ORCA_IMPORT = (() => {
     return {
       version,
       major: Number.isFinite(major) ? major : null
+    };
+  }
+
+  function parseFrequencyScalingFactor(lines) {
+    const scalingRe = new RegExp(
+      "Scaling\\s+factor\\s+for\\s+frequencies\\s*=\\s*(" +
+        NUMBER_PATTERN +
+        ")",
+      "i"
+    );
+
+    for (const line of lines) {
+      const match = line.match(scalingRe);
+
+      if (!match) {
+        continue;
+      }
+
+      const factor = Number(match[1]);
+      const rawLine = line.trim();
+      const alreadyApplied = /already\s+applied/i.test(rawLine);
+
+      if (!Number.isFinite(factor) || factor <= 0) {
+        return {
+          found: false,
+          factor: 1.0,
+          alreadyApplied: false,
+          rawLine,
+          invalid: true
+        };
+      }
+
+      return {
+        found: true,
+        factor,
+        alreadyApplied,
+        rawLine,
+        invalid: false
+      };
+    }
+
+    return {
+      found: false,
+      factor: 1.0,
+      alreadyApplied: false,
+      rawLine: null,
+      invalid: false
     };
   }
 

@@ -27,9 +27,12 @@ window.ORCAIR_SPECTRUM = (() => {
     const shift = sanitizeNumber(uiState.wnShift, config.DEFAULTS.wnShift);
     const normFactor = sanitizePositiveNumber(uiState.normFactor, config.DEFAULTS.normFactor);
 
-    const shiftedFrequencies = frequencies.map((freq) => freq + shift);
+    const frequencyScaling = getFrequencyScaling(parsedOrca, uiState, config);
+    const correctedFrequencies = frequencies.map((freq) => {
+      return freq * frequencyScaling.effectiveFactor + shift;
+    });
 
-    const x = buildXRange(shiftedFrequencies, config.SPECTRUM);
+    const x = buildXRange(correctedFrequencies, config.SPECTRUM);
     const rawSumY = new Array(x.length).fill(0);
 
     const shouldStoreSingleGaussians = Boolean(
@@ -37,8 +40,8 @@ window.ORCAIR_SPECTRUM = (() => {
     );
     const rawGaussians = shouldStoreSingleGaussians ? [] : null;
 
-    for (let i = 0; i < shiftedFrequencies.length; i++) {
-      const center = shiftedFrequencies[i];
+    for (let i = 0; i < correctedFrequencies.length; i++) {
+      const center = correctedFrequencies[i];
       const intensity = sanitizeNumber(intensities[i], 0);
 
       if (!Number.isFinite(center) || !Number.isFinite(intensity)) {
@@ -89,7 +92,7 @@ window.ORCAIR_SPECTRUM = (() => {
       Sticks must use the same normalization denominator as the broadened
       spectrum. Otherwise they are scaled independently and can appear too high.
     */
-    const sticks = shiftedFrequencies.map((wn, i) => ({
+    const sticks = correctedFrequencies.map((wn, i) => ({
       mode: Array.isArray(modes) ? modes[i] : i,
       wn,
       rawIntensity: intensities[i],
@@ -124,7 +127,8 @@ window.ORCAIR_SPECTRUM = (() => {
       sticks,
       gaussians,
 
-      shiftedFrequencies,
+      correctedFrequencies,
+      shiftedFrequencies: correctedFrequencies,
 
       stats: {
         points: x.length,
@@ -132,8 +136,31 @@ window.ORCAIR_SPECTRUM = (() => {
         xMax: x.length > 0 ? x[x.length - 1] : null,
         rawMax,
         normalizedMax: normFactor,
-        maxStickIntensity
+        maxStickIntensity,
+        frequencyScaleFactorApp: frequencyScaling.appFactor,
+        frequencyScaleFactorOrca: frequencyScaling.orcaFactor,
+        frequencyScaleFactorEffective: frequencyScaling.effectiveFactor
       }
+    };
+  }
+
+  function getFrequencyScaling(parsedOrca, uiState, config) {
+    const defaultFactor = config.DEFAULTS.frequencyScaleFactor ?? 1.0;
+
+    const appFactor = sanitizePositiveNumber(
+      uiState?.frequencyScaleFactor,
+      defaultFactor
+    );
+
+    const orcaFactor = sanitizePositiveNumber(
+      parsedOrca?.frequencyScaling?.factor,
+      defaultFactor
+    );
+
+    return {
+      appFactor,
+      orcaFactor,
+      effectiveFactor: appFactor / orcaFactor
     };
   }
 
@@ -143,11 +170,11 @@ window.ORCAIR_SPECTRUM = (() => {
     );
   }
 
-  function buildXRange(shiftedFrequencies, spectrumConfig) {
+  function buildXRange(correctedFrequencies, spectrumConfig) {
     const step = spectrumConfig.X_STEP;
     const padding = spectrumConfig.WN_PADDING;
 
-    const finiteFrequencies = shiftedFrequencies.filter(Number.isFinite);
+    const finiteFrequencies = correctedFrequencies.filter(Number.isFinite);
 
     if (finiteFrequencies.length === 0) {
       return [];

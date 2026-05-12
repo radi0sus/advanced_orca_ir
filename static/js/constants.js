@@ -15,6 +15,7 @@ window.ORCAIR_CONFIG = Object.freeze({
 
     linewidth: 15,
     wnShift: 0,
+    frequencyScaleFactor: 1.0,
     normFactor: 1.0,
 
     peakProminence: 0.05,
@@ -38,6 +39,10 @@ window.ORCAIR_CONFIG = Object.freeze({
 
     wnShiftMin: -300,
     wnShiftMax: 300,
+
+    frequencyScaleFactorMin: 0.9,
+    frequencyScaleFactorMax: 1.1,
+    frequencyScaleFactorStep: 0.0001,
 
     normFactorMin: 0.1,
     normFactorMax: 200,

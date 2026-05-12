@@ -138,7 +138,9 @@
       const parsed = ORCA_IMPORT.parseOrcaOutput(text, file.name);
 
       appState.parsedOrca = parsed;
+      appState.ui.frequencyScaleFactor = getInitialFrequencyScaleFactor(parsed);
 
+      UI.setControlsFromState(appState.ui);
       UI.setStatus(`Loaded: ${file.name} (${parsed.stats.modesParsed} IR modes)`);
 
       if (parsed.warnings.length > 0) {
@@ -220,6 +222,7 @@
       updateFromCurrentState();
     }
   }
+
   function handleResetView() {
     UI.resetRangeInputs();
     appState.ui = UI.readControls();
@@ -311,6 +314,8 @@
     const spectrum = appState.spectrum;
     const experimental = appState.experimentalData;
 
+    const frequencyScaling = getFrequencyScalingInfo(parsed, ui);
+
     const effectiveRangeMin = ui.rangeMin ?? spectrum?.stats?.xMin ?? null;
     const effectiveRangeMax = ui.rangeMax ?? spectrum?.stats?.xMax ?? null;
 
@@ -381,6 +386,11 @@
       `Displayed range max: ${rangeMax}`,
       `FWHM: ${ui.linewidth} cm⁻¹`,
       `Shift: ${formatSigned(ui.wnShift)} cm⁻¹`,
+      `Frequency scaling ORCA factor found: ${frequencyScaling.foundLabel}`,
+      `Frequency scaling ORCA factor: ${frequencyScaling.orcaFactorLabel}`,
+      `Frequency scaling already applied by ORCA: ${frequencyScaling.alreadyAppliedLabel}`,
+      `Frequency scaling app factor: ${frequencyScaling.appFactorLabel}`,
+      `Frequency scaling effective factor: ${frequencyScaling.effectiveFactorLabel}`,
       `Normalization: max = 1, factor = ${Number(ui.normFactor).toFixed(1)}`,
       ``,
       `Show peaks: ${yesNo(ui.showPeaks)}`,
@@ -432,6 +442,64 @@
     });
 
     UI.setPeaks([header, separator, ...rows].join("\n"));
+  }
+
+  function getInitialFrequencyScaleFactor(parsed) {
+    const factor = parsed?.frequencyScaling?.factor;
+    const fallback = CONFIG.DEFAULTS.frequencyScaleFactor;
+
+    if (!Number.isFinite(Number(factor)) || Number(factor) <= 0) {
+      return fallback;
+    }
+
+    return Number(factor);
+  }
+
+  function getFrequencyScalingInfo(parsed, ui) {
+    const scaling = parsed?.frequencyScaling ?? null;
+
+    const found = Boolean(scaling?.found);
+    const alreadyApplied = Boolean(scaling?.alreadyApplied);
+
+    const orcaFactor = sanitizePositiveNumber(
+      scaling?.factor,
+      CONFIG.DEFAULTS.frequencyScaleFactor
+    );
+
+    const appFactor = sanitizePositiveNumber(
+      ui?.frequencyScaleFactor,
+      CONFIG.DEFAULTS.frequencyScaleFactor
+    );
+
+    const effectiveFactor = appFactor / orcaFactor;
+
+    return {
+      foundLabel: parsed ? yesNo(found) : "–",
+      orcaFactorLabel: parsed ? formatFactor(orcaFactor) : "–",
+      alreadyAppliedLabel: parsed ? yesNo(alreadyApplied) : "–",
+      appFactorLabel: formatFactor(appFactor),
+      effectiveFactorLabel: parsed ? formatFactor(effectiveFactor) : formatFactor(1.0)
+    };
+  }
+
+  function sanitizePositiveNumber(value, fallback) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number) || number <= 0) {
+      return fallback;
+    }
+
+    return number;
+  }
+
+  function formatFactor(value) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "–";
+    }
+
+    return number.toFixed(6);
   }
 
   function yesNo(value) {
