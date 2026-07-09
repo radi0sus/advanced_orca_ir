@@ -55,7 +55,7 @@ Supported display options include:
 
 Instead of command-line options or editing variables in the Python script, the web app provides live UI controls for:
 
-- Gaussian line width / FWHM,
+- Gaussian line width / HWHM,
 - wavenumber shift,
 - normalization factor,
 - peak detection prominence,
