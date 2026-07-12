@@ -27,7 +27,7 @@ window.ORCAIR_PLOT = (() => {
     const isPhysical = ui.yAxisMode === "physical";
 
     const traces = isPhysical
-      ? buildPhysicalTraces(spectrum, colors)
+      ? buildPhysicalTraces(spectrum, ui, colors)
       : buildTraces(spectrum, experimental, ui, colors);
 
     const annotations = ui.showPeaks
@@ -103,22 +103,191 @@ window.ORCAIR_PLOT = (() => {
     return traces;
   }
 
-  function buildPhysicalTraces(spectrum, colors) {
+  function buildPhysicalTraces(spectrum, ui, colors) {
     const traces = [];
 
     /*
-      Draw order (matches the Multiwfn reference layout):
-      1. km/mol sticks on the secondary axis (thin, unbroadened lines)
-      2. epsilon curve on the primary axis (broadened Gaussian sum)
+      Draw order:
+      1. filled single Gaussian components in the background
+      2. single Gaussian component lines
+      3. km/mol sticks, if enabled
+      4. invisible y2 anchor trace, if sticks are disabled
+      5. broadened summed curve
 
-      The curve's hovertemplate carries the km/mol curve value as
-      customdata, so hovering anywhere on the plot shows both physical
-      quantities at once, as requested.
+      The invisible y2 anchor trace keeps the right km/mol axis visible
+      even when the stick display is switched off.
     */
-    traces.push(buildPhysicalStickTrace(spectrum, colors));
+    if (ui.showFilledGaussians && spectrum.gaussians.length > 0) {
+      traces.push(...buildPhysicalFilledGaussianTraces(spectrum));
+    }
+
+    if (ui.showGaussians && spectrum.gaussians.length > 0) {
+      traces.push(...buildPhysicalGaussianTraces(spectrum, colors));
+    }
+
+    if (ui.showSticks && spectrum.sticks.length > 0) {
+      traces.push(buildPhysicalStickTrace(spectrum, colors));
+    } else {
+      traces.push(buildPhysicalYAxisAnchorTrace(spectrum));
+    }
+
     traces.push(buildPhysicalCurveTrace(spectrum, colors));
 
     return traces;
+  }
+
+  function buildPhysicalYAxisAnchorTrace(spectrum) {
+    const xMin = spectrum.stats.xMin ?? 0;
+    const xMax = spectrum.stats.xMax ?? 1;
+
+    const yMax = spectrum.stats.maxStickIntensity > 0
+      ? spectrum.stats.maxStickIntensity
+      : 1;
+
+    return {
+      x: [xMin, xMax],
+      y: [0, yMax],
+      type: "scatter",
+      mode: "lines",
+      name: "IR intensity axis anchor",
+      yaxis: "y2",
+      line: {
+        color: "rgba(0,0,0,0)",
+        width: 0
+      },
+      opacity: 0,
+      hoverinfo: "skip",
+      showlegend: false
+    };
+  }
+
+  function buildPhysicalGaussianTraces(spectrum, colors) {
+    const x = [];
+    const y = [];
+
+    for (const gaussian of spectrum.gaussians) {
+      const gaussianY = getPhysicalGaussianY(gaussian, spectrum);
+
+      if (gaussianY.length !== spectrum.x.length) {
+        continue;
+      }
+
+      for (let i = 0; i < spectrum.x.length; i++) {
+        x.push(spectrum.x[i]);
+        y.push(gaussianY[i]);
+      }
+
+      x.push(null);
+      y.push(null);
+    }
+
+    return [
+      {
+        x,
+        y,
+        type: "scatter",
+        mode: "lines",
+        name: "Single Gaussians",
+        yaxis: "y",
+        line: {
+          color: colors.gaussian,
+          width: 0.8,
+          dash: "solid"
+        },
+        opacity: 1,
+        hoverinfo: "skip",
+        showlegend: false
+      }
+    ];
+  }
+
+  function buildPhysicalFilledGaussianTraces(spectrum) {
+    const traces = [];
+
+    if (!Array.isArray(spectrum.gaussians) || spectrum.gaussians.length === 0) {
+      return traces;
+    }
+
+    const centers = spectrum.gaussians
+      .map((gaussian) => gaussian.center)
+      .filter(Number.isFinite);
+
+    const minCenter = centers.length > 0 ? Math.min(...centers) : 0;
+    const maxCenter = centers.length > 0 ? Math.max(...centers) : 1;
+
+    for (const gaussian of spectrum.gaussians) {
+      if (!Number.isFinite(gaussian.rawIntensity) || gaussian.rawIntensity <= 0) {
+        continue;
+      }
+
+      const gaussianY = getPhysicalGaussianY(gaussian, spectrum);
+
+      if (gaussianY.length !== spectrum.x.length) {
+        continue;
+      }
+
+      const x = [];
+      const y = [];
+
+      for (let i = 0; i < spectrum.x.length; i++) {
+        x.push(spectrum.x[i]);
+        y.push(gaussianY[i]);
+      }
+
+      for (let i = spectrum.x.length - 1; i >= 0; i--) {
+        x.push(spectrum.x[i]);
+        y.push(0);
+      }
+
+      const fillColor = gaussianRainbowColor(
+        gaussian.center,
+        minCenter,
+        maxCenter,
+        0.16
+      );
+
+      const lineColor = gaussianRainbowColor(
+        gaussian.center,
+        minCenter,
+        maxCenter,
+        0.35
+      );
+
+      traces.push({
+        x,
+        y,
+        type: "scatter",
+        mode: "lines",
+        fill: "toself",
+        fillcolor: fillColor,
+        name: `Filled Gaussian ${gaussian.mode}`,
+        yaxis: "y",
+        line: {
+          color: lineColor,
+          width: 0.45
+        },
+        hoverinfo: "skip",
+        showlegend: false
+      });
+    }
+
+    return traces;
+  }
+
+  function getPhysicalGaussianY(gaussian, spectrum) {
+    if (Array.isArray(gaussian.epsilonY)) {
+      return gaussian.epsilonY;
+    }
+
+    if (Array.isArray(gaussian.kmMolY)) {
+      const epsFactor = Number(spectrum?.stats?.epsFactor);
+
+      if (Number.isFinite(epsFactor)) {
+        return gaussian.kmMolY.map((value) => value * epsFactor);
+      }
+    }
+
+    return [];
   }
 
   function buildPhysicalCurveTrace(spectrum, colors) {

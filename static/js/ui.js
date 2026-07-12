@@ -245,13 +245,8 @@ window.ORCAIR_UI = (() => {
 
     setControlGroupDisabled("normFactorControl", isPhysical);
     setControlGroupDisabled("experimentSection", isPhysical);
-
-    const showGaussians = $("showGaussians");
-    const showFilledGaussians = $("showFilledGaussians");
-
-    if (showGaussians) showGaussians.disabled = isPhysical;
-    if (showFilledGaussians) showFilledGaussians.disabled = isPhysical;
   }
+
 
   function setControlGroupDisabled(containerId, disabled) {
     const container = $(containerId);

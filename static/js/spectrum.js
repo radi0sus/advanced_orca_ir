@@ -139,7 +139,21 @@ window.ORCAIR_SPECTRUM = (() => {
           mode: g.mode,
           center: g.center,
           rawIntensity: g.rawIntensity,
-          y: g.y.map((value) => value / rawMaxSafe * normFactor)
+
+          /*
+            Normalized Gaussian component for the normalized display mode.
+            This keeps the previous behaviour unchanged.
+          */
+          y: g.y.map((value) => value / rawMaxSafe * normFactor),
+
+          /*
+            Physical Gaussian component.
+            The basis remains the raw ORCA intensity in km/mol.
+            epsilonY is only the linearly coupled representation used by
+            the physical ε + km/mol plot.
+          */
+          kmMolY: g.y,
+          epsilonY: g.y.map((value) => value * epsFactor)
         }))
       : [];
 
