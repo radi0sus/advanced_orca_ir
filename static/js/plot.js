@@ -23,21 +23,33 @@ window.ORCAIR_PLOT = (() => {
 
     const plotElement = UI.$("plot");
     const dark = isDarkMode();
-
     const colors = getThemeColors(dark);
-    const traces = buildTraces(spectrum, experimental, ui, colors);
+    const isPhysical = ui.yAxisMode === "physical";
+
+    const traces = isPhysical
+      ? buildPhysicalTraces(spectrum, colors)
+      : buildTraces(spectrum, experimental, ui, colors);
+
     const annotations = ui.showPeaks
-      ? buildPeakAnnotations(spectrum, peaks, ui, colors.peak)
+      ? buildPeakAnnotations(spectrum, peaks, ui, colors.peak, isPhysical)
       : [];
 
-    const layout = buildLayout({
-      title: buildPlotTitle(parsed),
-      spectrum,
-      experimental,
-      ui,
-      annotations,
-      colors
-    });
+    const layout = isPhysical
+      ? buildPhysicalLayout({
+          title: buildPlotTitle(parsed),
+          spectrum,
+          ui,
+          annotations,
+          colors
+        })
+      : buildLayout({
+          title: buildPlotTitle(parsed),
+          spectrum,
+          experimental,
+          ui,
+          annotations,
+          colors
+        });
 
     const config = {
       responsive: true,
@@ -89,6 +101,72 @@ window.ORCAIR_PLOT = (() => {
     }
 
     return traces;
+  }
+
+  function buildPhysicalTraces(spectrum, colors) {
+    const traces = [];
+
+    /*
+      Draw order (matches the Multiwfn reference layout):
+      1. km/mol sticks on the secondary axis (thin, unbroadened lines)
+      2. epsilon curve on the primary axis (broadened Gaussian sum)
+
+      The curve's hovertemplate carries the km/mol curve value as
+      customdata, so hovering anywhere on the plot shows both physical
+      quantities at once, as requested.
+    */
+    traces.push(buildPhysicalStickTrace(spectrum, colors));
+    traces.push(buildPhysicalCurveTrace(spectrum, colors));
+
+    return traces;
+  }
+
+  function buildPhysicalCurveTrace(spectrum, colors) {
+    const customdata = spectrum.kmMolY;
+
+    return {
+      x: spectrum.x,
+      y: spectrum.epsilonY,
+      customdata,
+      type: "scatter",
+      mode: "lines",
+      name: "ε (calculated)",
+      yaxis: "y",
+      line: {
+        color: colors.spectrum,
+        width: 1.8
+      },
+      hovertemplate:
+        "Wavenumber: %{x:.1f} cm⁻¹<br>" +
+        "ε: %{y:.2f} L·mol⁻¹·cm⁻¹<br>" +
+        "km/mol: %{customdata:.2f}<extra></extra>"
+    };
+  }
+
+  function buildPhysicalStickTrace(spectrum, colors) {
+    const x = [];
+    const y = [];
+
+    for (const stick of spectrum.sticks) {
+      x.push(stick.wn, stick.wn, null);
+      y.push(0, stick.kmMol, null);
+    }
+
+    return {
+      x,
+      y,
+      type: "scatter",
+      mode: "lines",
+      name: "IR intensity (km/mol)",
+      yaxis: "y2",
+      line: {
+        color: colors.sticks,
+        width: 1.1
+      },
+      opacity: 0.85,
+      hoverinfo: "skip",
+      showlegend: false
+    };
   }
 
   function buildSpectrumTrace(spectrum, ui, colors) {
@@ -330,12 +408,14 @@ window.ORCAIR_PLOT = (() => {
     };
   }
 
-  function buildPeakAnnotations(spectrum, peaks, ui, peakColor) {
+  function buildPeakAnnotations(spectrum, peaks, ui, peakColor, isPhysical = false) {
     const annotations = [];
     const filteredPeaks = thinPeakLabels(peaks, 15);
 
     for (const peak of filteredPeaks) {
-      const y = getDisplayedPeakY(spectrum, peak, ui);
+      const y = isPhysical
+        ? spectrum.epsilonY[peak.index]
+        : getDisplayedPeakY(spectrum, peak, ui);
 
       if (!Number.isFinite(y)) {
         continue;
@@ -378,6 +458,112 @@ window.ORCAIR_PLOT = (() => {
     }
 
     return labeled;
+  }
+
+  function buildPhysicalLayout({ title, spectrum, ui, annotations, colors }) {
+    const xRange = buildXRange(spectrum, ui);
+
+    const epsUpper = spectrum.stats.maxEpsilon > 0
+      ? spectrum.stats.maxEpsilon * 1.12
+      : 1;
+
+    const kmMolUpper = spectrum.stats.maxStickIntensity > 0
+      ? spectrum.stats.maxStickIntensity * 1.12
+      : 1;
+
+    return {
+      title: {
+        text: title,
+        x: 0.5,
+        xanchor: "center",
+        font: {
+          size: 20,
+          color: colors.text
+        }
+      },
+      paper_bgcolor: colors.paperBg,
+      plot_bgcolor: colors.plotBg,
+      margin: {
+        t: 72,
+        r: 82,
+        b: 96,
+        l: 92
+      },
+      xaxis: {
+        title: {
+          text: "Wavenumber / cm⁻¹",
+          font: {
+            size: 15,
+            color: colors.text
+          }
+        },
+        range: xRange,
+        showline: true,
+        linecolor: colors.axis,
+        linewidth: 1.4,
+        mirror: true,
+        ticks: "inside",
+        ticklen: 6,
+        tickwidth: 1.1,
+        tickcolor: colors.axis,
+        tickfont: {
+          color: colors.text
+        },
+        showgrid: Boolean(ui.showGrid),
+        gridcolor: colors.grid,
+        zeroline: false,
+        dtick: 500
+      },
+      yaxis: {
+        title: {
+          text: "Molar absorption coefficient ε / L·mol⁻¹·cm⁻¹",
+          font: {
+            size: 14,
+            color: colors.text
+          }
+        },
+        range: [0, epsUpper],
+        showline: true,
+        linecolor: colors.axis,
+        linewidth: 1.4,
+        ticks: "inside",
+        ticklen: 6,
+        tickwidth: 1.1,
+        tickcolor: colors.axis,
+        tickfont: {
+          color: colors.text
+        },
+        showgrid: false,
+        zeroline: false
+      },
+      yaxis2: {
+        title: {
+          text: "IR intensity / km·mol⁻¹",
+          font: {
+            size: 14,
+            color: colors.text
+          }
+        },
+        range: [0, kmMolUpper],
+        overlaying: "y",
+        side: "right",
+        showline: true,
+        linecolor: colors.axis,
+        linewidth: 1.4,
+        ticks: "inside",
+        ticklen: 6,
+        tickwidth: 1.1,
+        tickcolor: colors.axis,
+        tickfont: {
+          color: colors.text
+        },
+        showgrid: false,
+        zeroline: false
+      },
+      annotations,
+      showlegend: false,
+      hovermode: "closest"
+    };
   }
 
   function buildLayout({ title, spectrum, experimental, ui, annotations, colors }) {

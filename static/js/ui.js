@@ -152,6 +152,7 @@ window.ORCAIR_UI = (() => {
   function readControls() {
     return {
       spectrumMode: getRadioValue("spectrumMode"),
+      yAxisMode: getRadioValue("yAxisMode"),
       axisDirection: getRadioValue("axisDirection"),
 
       rangeMin: numberOrNull($("rangeMin").value),
@@ -182,6 +183,12 @@ window.ORCAIR_UI = (() => {
     if (state.spectrumMode) {
       setRadioValue("spectrumMode", state.spectrumMode);
     }
+
+    if (state.yAxisMode) {
+      setRadioValue("yAxisMode", state.yAxisMode);
+    }
+
+    applyYAxisModeAvailability(state.yAxisMode);
 
     if (state.axisDirection) {
       setRadioValue("axisDirection", state.axisDirection);
@@ -228,10 +235,42 @@ window.ORCAIR_UI = (() => {
     updateSliderLabels();
   }
 
+  function applyYAxisModeAvailability(mode) {
+    const isPhysical = mode === "physical";
+
+    const transRadio = $("modeTrans");
+    if (transRadio) {
+      transRadio.disabled = isPhysical;
+    }
+
+    setControlGroupDisabled("normFactorControl", isPhysical);
+    setControlGroupDisabled("experimentSection", isPhysical);
+
+    const showGaussians = $("showGaussians");
+    const showFilledGaussians = $("showFilledGaussians");
+
+    if (showGaussians) showGaussians.disabled = isPhysical;
+    if (showFilledGaussians) showFilledGaussians.disabled = isPhysical;
+  }
+
+  function setControlGroupDisabled(containerId, disabled) {
+    const container = $(containerId);
+    if (!container) return;
+
+    container.classList.toggle("control-disabled", disabled);
+
+    const controls = container.querySelectorAll("input, select, textarea, button");
+    for (const el of controls) {
+      el.disabled = disabled;
+    }
+  }
+
   function bindControlEvents(callback) {
     const ids = [
       "modeAbs",
       "modeTrans",
+      "yAxisNormalized",
+      "yAxisPhysical",
       "axisHighLow",
       "axisLowHigh",
 
@@ -269,6 +308,10 @@ window.ORCAIR_UI = (() => {
           id === "frequencyScaleFactorInput"
         ) {
           syncFrequencyScaleFactorControls(id);
+        }
+
+        if (id === "yAxisNormalized" || id === "yAxisPhysical") {
+          applyYAxisModeAvailability(getRadioValue("yAxisMode"));
         }
 
         updateSliderLabels();
@@ -391,6 +434,7 @@ window.ORCAIR_UI = (() => {
     updateSliderLabels,
     readControls,
     setControlsFromState,
+    applyYAxisModeAvailability,
     bindControlEvents,
     bindFileInput,
     bindButton,

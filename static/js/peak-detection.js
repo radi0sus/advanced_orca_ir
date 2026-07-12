@@ -25,6 +25,9 @@ window.ORCAIR_PEAKS = (() => {
     const maxIntensity = maxArray(filtered.map((peak) => peak.intensity));
     const maxIntensitySafe = maxIntensity > 0 ? maxIntensity : 1;
 
+    const kmMolY = Array.isArray(spectrum.kmMolY) ? spectrum.kmMolY : null;
+    const epsilonY = Array.isArray(spectrum.epsilonY) ? spectrum.epsilonY : null;
+
     return filtered
       .map((peak) => {
         const relIntensity = peak.intensity / maxIntensitySafe;
@@ -32,7 +35,9 @@ window.ORCAIR_PEAKS = (() => {
         return {
           ...peak,
           relIntensity,
-          strength: classifyStrength(relIntensity)
+          strength: classifyStrength(relIntensity),
+          kmMol: kmMolY ? kmMolY[peak.index] : null,
+          epsilon: epsilonY ? epsilonY[peak.index] : null
         };
       })
       .sort((a, b) => b.wn - a.wn);

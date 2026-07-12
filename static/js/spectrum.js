@@ -70,6 +70,28 @@ window.ORCAIR_SPECTRUM = (() => {
     const maxStickIntensity = maxArray(intensities);
 
     /*
+      Physical-unit y-axis mode (eps + km/mol).
+      kmMolY is simply the raw, unnormalized Gaussian sum built from the
+      Int/T**2 values in km/mol - already computed above as rawSumY.
+      epsilonY is derived from it via the area-normalized conversion
+      factor (see constants.js EPSILON block). Both are independent of
+      normFactor and available for every ORCA version, since they only
+      require the km/mol intensities that are always parsed.
+    */
+    const epsilonConfig = config.EPSILON ?? {
+      AREA_PER_KMMOL: 100,
+      GAUSSIAN_SHAPE_PREFACTOR: Math.sqrt(Math.log(2) / Math.PI)
+    };
+
+    const epsFactor =
+      (epsilonConfig.AREA_PER_KMMOL * epsilonConfig.GAUSSIAN_SHAPE_PREFACTOR) /
+      linewidth;
+
+    const kmMolY = rawSumY;
+    const epsilonY = rawSumY.map((y) => y * epsFactor);
+    const maxEpsilon = maxArray(epsilonY);
+
+    /*
       Main normalization:
       The broadened sum spectrum is normalized to max = 1,
       then multiplied by normFactor.
@@ -96,7 +118,16 @@ window.ORCAIR_SPECTRUM = (() => {
       mode: Array.isArray(modes) ? modes[i] : i,
       wn,
       rawIntensity: intensities[i],
-      y: intensities[i] / rawMaxSafe * normFactor
+      y: intensities[i] / rawMaxSafe * normFactor,
+
+      /*
+        Always available, independent of the selected y-axis mode:
+        the raw km/mol value (identical to rawIntensity, kept as an
+        explicit alias for clarity in export/peaks code) and the
+        derived epsilon value at this stick's line center.
+      */
+      kmMol: intensities[i],
+      epsilon: Number.isFinite(intensities[i]) ? intensities[i] * epsFactor : null
     }));
 
     /*
@@ -127,6 +158,9 @@ window.ORCAIR_SPECTRUM = (() => {
       sticks,
       gaussians,
 
+      kmMolY,
+      epsilonY,
+
       correctedFrequencies,
       shiftedFrequencies: correctedFrequencies,
 
@@ -137,6 +171,8 @@ window.ORCAIR_SPECTRUM = (() => {
         rawMax,
         normalizedMax: normFactor,
         maxStickIntensity,
+        epsFactor,
+        maxEpsilon,
         frequencyScaleFactorApp: frequencyScaling.appFactor,
         frequencyScaleFactorOrca: frequencyScaling.orcaFactor,
         frequencyScaleFactorEffective: frequencyScaling.effectiveFactor

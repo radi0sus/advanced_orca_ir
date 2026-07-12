@@ -15,11 +15,15 @@ window.ORCAIR_EXPORT = (() => {
 
     const lines = [];
 
+    const hasPhysical = Array.isArray(spectrum.kmMolY) && Array.isArray(spectrum.epsilonY);
+
     lines.push([
       "wn_cm-1",
       "transmittance_percent",
       "abs_norm",
-      "abs_scaled"
+      "abs_scaled",
+      "intensity_kmmol",
+      "epsilon_Lmolcm"
     ].join(delimiter));
 
     for (let i = 0; i < spectrum.x.length; i++) {
@@ -27,12 +31,16 @@ window.ORCAIR_EXPORT = (() => {
       const percentT = transmittancePercent[i];
       const absNorm = spectrum.unitAbsorptionY[i];
       const absScaled = spectrum.absorptionY[i];
+      const kmMol = hasPhysical ? spectrum.kmMolY[i] : null;
+      const epsilon = hasPhysical ? spectrum.epsilonY[i] : null;
 
       lines.push([
         formatNumber(wn, 2),
         formatNumber(percentT, 6),
         formatNumber(absNorm, 8),
-        formatNumber(absScaled, 8)
+        formatNumber(absScaled, 8),
+        formatNumber(kmMol, 6),
+        formatNumber(epsilon, 6)
       ].join(delimiter));
     }
 

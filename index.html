@@ -52,6 +52,35 @@
         <h2 class="section-title">Display</h2>
 
         <div class="control">
+          <label>Y-axis</label>
+
+          <div class="segmented-control two">
+            <input
+              type="radio"
+              name="yAxisMode"
+              id="yAxisNormalized"
+              value="normalized"
+              checked
+            />
+            <label for="yAxisNormalized">Normalized</label>
+
+            <input
+              type="radio"
+              name="yAxisMode"
+              id="yAxisPhysical"
+              value="physical"
+            />
+            <label for="yAxisPhysical">ε + km/mol</label>
+          </div>
+
+          <small>
+            Normalization,
+            transmission and the experimental overlay are only available
+            in Normalized mode.
+          </small>
+        </div>
+
+        <div class="control" id="spectrumModeControl">
           <label>Spectrum mode</label>
 
           <div class="segmented-control two">
@@ -151,7 +180,7 @@
           />
         </div>
 
-        <div class="control">
+        <div class="control" id="normFactorControl">
           <div class="range-header">
             <label for="normFactor">Normalization factor</label>
             <span id="normFactorValue" class="range-value">×1.0</span>
@@ -307,7 +336,7 @@
       </section>
 
       <!-- Experiment -->
-      <section class="sidebar-section">
+      <section class="sidebar-section" id="experimentSection">
         <h2 class="section-title">Experiment</h2>
 
         <div class="control">

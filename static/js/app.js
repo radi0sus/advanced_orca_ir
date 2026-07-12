@@ -77,7 +77,7 @@
 
   function bindEvents() {
     UI.bindControlEvents((uiState) => {
-      appState.ui = uiState;
+      appState.ui = normalizeYAxisModeState(uiState);
       updateFromCurrentState();
     });
 
@@ -271,6 +271,17 @@
     UI.showToast(ok ? "Peaks copied." : "Could not copy peaks.");
   }
 
+  function normalizeYAxisModeState(uiState) {
+    if (uiState.yAxisMode === "physical" && uiState.spectrumMode === "transmission") {
+      const el = UI.$("modeAbs");
+      if (el) el.checked = true;
+
+      return { ...uiState, spectrumMode: "absorption" };
+    }
+
+    return uiState;
+  }
+
   function updateFromCurrentState() {
     if (!appState.parsedOrca) {
       updateInfoBox();
@@ -380,6 +391,7 @@
       `Calculated points: ${calculatedPoints}`,
       `Calculated range: ${calculatedRange}`,
       ``,
+      `Y-axis mode: ${ui.yAxisMode}`,
       `Spectrum mode: ${ui.spectrumMode}`,
       `Axis direction: ${ui.axisDirection}`,
       `Displayed range min: ${rangeMin}`,
@@ -393,6 +405,7 @@
       `Frequency scaling app factor: ${frequencyScaling.appFactorLabel}`,
       `Frequency scaling effective factor: ${frequencyScaling.effectiveFactorLabel}`,
       `Normalization: max = 1, factor = ${Number(ui.normFactor).toFixed(1)}`,
+      `Epsilon factor (100·sqrt(ln2/pi)/HWHM): ${spectrum ? spectrum.stats.epsFactor.toFixed(6) : "–"}`,
       ``,
       `Show peaks: ${yesNo(ui.showPeaks)}`,
       `Show sticks: ${yesNo(ui.showSticks)}`,
@@ -421,24 +434,32 @@
     const header = [
       padLeft("wn / cm⁻¹", 10),
       padLeft("rel. int. / %", 13),
-      padLeft("strength", 8)
+      padLeft("strength", 8),
+      padLeft("km/mol", 10),
+      padLeft("eps / L·mol⁻¹·cm⁻¹", 18)
     ].join("  ");
 
     const separator = [
       "-".repeat(10),
       "-".repeat(13),
-      "-".repeat(8)
+      "-".repeat(8),
+      "-".repeat(10),
+      "-".repeat(18)
     ].join("  ");
 
     const rows = appState.peaks.map((peak) => {
       const wn = Number(peak.wn).toFixed(0);
       const rel = Number(peak.relIntensity * 100).toFixed(1);
       const strength = peak.strength || "";
+      const kmMol = Number.isFinite(peak.kmMol) ? peak.kmMol.toFixed(2) : "–";
+      const epsilon = Number.isFinite(peak.epsilon) ? peak.epsilon.toFixed(2) : "–";
 
       return [
         padLeft(wn, 10),
         padLeft(rel, 13),
-        padLeft(strength, 8)
+        padLeft(strength, 8),
+        padLeft(kmMol, 10),
+        padLeft(epsilon, 18)
       ].join("  ");
     });
 

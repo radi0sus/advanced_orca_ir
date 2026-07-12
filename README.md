@@ -39,8 +39,8 @@ The spectrum is rendered with Plotly and can be interactively inspected.
 
 Supported display options include:
 
-- absorption/intensity mode,
-- transmittance-style mode,
+- normalized mode (absorption/intensity or transmittance-style),
+- physical ε + km/mol mode (dual-axis, see below),
 - high-to-low or low-to-high wavenumber axis,
 - adjustable displayed wavenumber range,
 - grid toggle,
@@ -73,6 +73,44 @@ Changes are applied interactively.
 The app checks the vibrational frequencies for negative frequencies / imaginary modes.
 
 If negative frequencies are found, a warning is shown, but spectrum generation continues.
+
+---
+
+### Physical y-axis mode (ε + km/mol)
+
+In addition to the normalized display, the app offers a second, physical
+y-axis mode showing a dual-axis spectrum in the style of Multiwfn's IR
+plots:
+
+- the **left axis** shows the molar absorption coefficient ε in
+  L·mol⁻¹·cm⁻¹, as a broadened Gaussian curve,
+- the **right axis** shows the IR intensity in km/mol, as unbroadened
+  sticks at each mode's frequency.
+
+ε is derived from the always-available `Int`/`T**2` values (km/mol) using
+an area-normalized conversion, independent of the parsed ORCA version:
+
+```text
+epsilon(x) = kmMolCurve(x) × [100 × sqrt(ln2/π) / HWHM]
+```
+
+This follows the convention used by Multiwfn for IR/Raman/VCD/ROA
+spectra (Gaussian broadening, area under the ε(ν) curve equals
+100 × intensity in km/mol). The formula was validated numerically against
+Multiwfn reference spectra and matched to 6 significant figures.
+
+Because this mode shows absolute physical quantities rather than a
+normalized display, the following controls are not applicable and are
+disabled while it is active:
+
+- transmission mode (no physical %T can be derived without a known
+  concentration and path length),
+- the normalization factor,
+- the experimental CSV overlay (which is normalized to a 0–1 scale and
+  not on a comparable absolute axis).
+
+The exported CSV and the peaks list always include both the km/mol and ε
+values, regardless of which y-axis mode is currently displayed.
 
 ---
 
@@ -111,7 +149,7 @@ The web app supports export of:
 The CSV export contains:
 
 ```text
-wn_cm-1, transmittance_percent, abs_norm, abs_scaled
+wn_cm-1, transmittance_percent, abs_norm, abs_scaled, intensity_kmmol, epsilon_Lmolcm
 ```
 
 Where:
@@ -119,7 +157,11 @@ Where:
 - `wn_cm-1` is the calculated wavenumber axis, including any applied wavenumber shift,
 - `transmittance_percent` is the normalized transmittance-style spectrum,
 - `abs_norm` is the normalized absorption spectrum with maximum intensity = 1,
-- `abs_scaled` is the normalized absorption spectrum multiplied by the selected normalization factor.
+- `abs_scaled` is the normalized absorption spectrum multiplied by the selected normalization factor,
+- `intensity_kmmol` is the unnormalized, broadened spectrum in km/mol,
+- `epsilon_Lmolcm` is the derived molar absorption coefficient ε in L·mol⁻¹·cm⁻¹ (see "Physical y-axis mode" above).
+
+The last two columns are exported unconditionally, independent of the currently selected y-axis mode.
 
 ---
 

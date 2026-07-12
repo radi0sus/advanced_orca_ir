@@ -279,6 +279,20 @@ button:focus {
   color: #ffffff;
 }
 
+.segmented-control input[type="radio"]:disabled + label {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.control-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.control-disabled input {
+  cursor: not-allowed;
+}
+
 @media (prefers-color-scheme: dark) {
   .segmented-control input[type="radio"]:checked + label {
     color: #11161c;
