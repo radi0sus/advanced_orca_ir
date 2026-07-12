@@ -516,7 +516,7 @@ window.ORCAIR_PLOT = (() => {
       },
       yaxis: {
         title: {
-          text: "Molar absorption coefficient ε / L·mol⁻¹·cm⁻¹",
+          text: "Molar absorption coefficient ε / M⁻¹·cm⁻¹",
           font: {
             size: 14,
             color: colors.text

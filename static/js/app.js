@@ -435,16 +435,16 @@
       padLeft("wn / cm⁻¹", 10),
       padLeft("rel. int. / %", 13),
       padLeft("strength", 8),
-      padLeft("km/mol", 10),
-      padLeft("eps / L·mol⁻¹·cm⁻¹", 18)
+      padLeft("int. / km·mol⁻¹", 15),
+      padLeft("ε / M⁻¹·cm⁻¹", 12)
     ].join("  ");
 
     const separator = [
       "-".repeat(10),
       "-".repeat(13),
       "-".repeat(8),
-      "-".repeat(10),
-      "-".repeat(18)
+      "-".repeat(15),
+      "-".repeat(12)
     ].join("  ");
 
     const rows = appState.peaks.map((peak) => {
@@ -458,8 +458,8 @@
         padLeft(wn, 10),
         padLeft(rel, 13),
         padLeft(strength, 8),
-        padLeft(kmMol, 10),
-        padLeft(epsilon, 18)
+        padLeft(kmMol, 15),
+        padLeft(epsilon, 12)
       ].join("  ");
     });
 

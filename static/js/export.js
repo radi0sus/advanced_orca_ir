@@ -23,7 +23,7 @@ window.ORCAIR_EXPORT = (() => {
       "abs_norm",
       "abs_scaled",
       "intensity_kmmol",
-      "epsilon_Lmolcm"
+      "epsilon_Mcm"
     ].join(delimiter));
 
     for (let i = 0; i < spectrum.x.length; i++) {
