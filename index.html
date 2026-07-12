@@ -149,6 +149,29 @@
         <h2 class="section-title">Spectrum</h2>
 
         <div class="control">
+          <label>Broadening</label>
+
+          <div class="segmented-control two">
+            <input
+              type="radio"
+              name="lineshape"
+              id="lineshapeGaussian"
+              value="gaussian"
+              checked
+            />
+            <label for="lineshapeGaussian">Gaussian</label>
+
+            <input
+              type="radio"
+              name="lineshape"
+              id="lineshapeLorentzian"
+              value="lorentzian"
+            />
+            <label for="lineshapeLorentzian">Lorentzian</label>
+          </div>
+        </div>
+
+        <div class="control">
           <div class="range-header">
             <label for="linewidth">Line width / HWHM</label>
             <span id="linewidthValue" class="range-value">15 cm⁻¹</span>
@@ -262,8 +285,8 @@
 
           <label class="toggle-row" for="showGaussians">
             <span>
-              Single Gaussians
-              <small>Show individual Gaussian functions</small>
+              Single peaks
+              <small>Show individual peak functions</small>
             </span>
 
             <span class="switch">
@@ -274,8 +297,8 @@
           
           <label class="toggle-row" for="showFilledGaussians">
             <span>
-              Filled Single Gaussians
-              <small>Show individual Gaussian areas</small>
+              Filled single peaks
+              <small>Show individual peak areas</small>
             </span>
           
             <span class="switch">
@@ -403,7 +426,7 @@
       <header class="plot-header">
         <div>
           <h2>IR spectrum</h2>
-          <p>
+          <p id="plotSubtitle">
             Gaussian-broadened IR spectrum.
           </p>
         </div>
@@ -426,6 +449,7 @@ Modes parsed: –
 Imaginary modes: –
 Frequency range: –
 Max intensity: –
+Lineshape: gaussian
 HWHM: 15 cm⁻¹
 FWHM: 30 cm⁻¹
 Shift: 0 cm⁻¹

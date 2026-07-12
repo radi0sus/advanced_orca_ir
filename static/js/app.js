@@ -378,6 +378,19 @@
       ? yesNo(experimental.hasHeader)
       : "–";
 
+    const isLorentzian = ui.lineshape === "lorentzian";
+    const lineshapeLabel = isLorentzian ? "lorentzian" : "gaussian";
+    const epsFactorLabel = isLorentzian
+      ? "Epsilon factor (100/(pi·HWHM))"
+      : "Epsilon factor (100·sqrt(ln2/pi)/HWHM)";
+
+    const subtitle = UI.$("plotSubtitle");
+    if (subtitle) {
+      subtitle.textContent = isLorentzian
+        ? "Lorentzian-broadened IR spectrum."
+        : "Gaussian-broadened IR spectrum.";
+    }
+
     const text = [
       `Filename: ${filename}`,
       `ORCA version: ${orcaVersion}`,
@@ -394,6 +407,7 @@
       `Y-axis mode: ${ui.yAxisMode}`,
       `Spectrum mode: ${ui.spectrumMode}`,
       `Axis direction: ${ui.axisDirection}`,
+      `Lineshape: ${lineshapeLabel}`,
       `Displayed range min: ${rangeMin}`,
       `Displayed range max: ${rangeMax}`,
       `HWHM: ${ui.linewidth} cm⁻¹`,
@@ -405,12 +419,12 @@
       `Frequency scaling app factor: ${frequencyScaling.appFactorLabel}`,
       `Frequency scaling effective factor: ${frequencyScaling.effectiveFactorLabel}`,
       `Normalization: max = 1, factor = ${Number(ui.normFactor).toFixed(1)}`,
-      `Epsilon factor (100·sqrt(ln2/pi)/HWHM): ${spectrum ? spectrum.stats.epsFactor.toFixed(6) : "–"}`,
+      `${epsFactorLabel}: ${spectrum ? spectrum.stats.epsFactor.toFixed(6) : "–"}`,
       ``,
       `Show peaks: ${yesNo(ui.showPeaks)}`,
       `Show sticks: ${yesNo(ui.showSticks)}`,
-      `Show single Gaussians: ${yesNo(ui.showGaussians)}`,
-      `Show filled Gaussians: ${yesNo(ui.showFilledGaussians)}`,
+      `Show single peaks: ${yesNo(ui.showGaussians)}`,
+      `Show filled single peaks: ${yesNo(ui.showFilledGaussians)}`,
       `Show grid: ${yesNo(ui.showGrid)}`,
       ``,
       `Experimental file: ${experimentalFilename}`,

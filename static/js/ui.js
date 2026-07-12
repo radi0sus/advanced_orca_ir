@@ -154,6 +154,7 @@ window.ORCAIR_UI = (() => {
       spectrumMode: getRadioValue("spectrumMode"),
       yAxisMode: getRadioValue("yAxisMode"),
       axisDirection: getRadioValue("axisDirection"),
+      lineshape: getRadioValue("lineshape"),
 
       rangeMin: numberOrNull($("rangeMin").value),
       rangeMax: numberOrNull($("rangeMax").value),
@@ -192,6 +193,10 @@ window.ORCAIR_UI = (() => {
 
     if (state.axisDirection) {
       setRadioValue("axisDirection", state.axisDirection);
+    }
+
+    if (state.lineshape) {
+      setRadioValue("lineshape", state.lineshape);
     }
 
     if (state.rangeMin !== undefined && state.rangeMin !== null) {
@@ -268,6 +273,9 @@ window.ORCAIR_UI = (() => {
       "yAxisPhysical",
       "axisHighLow",
       "axisLowHigh",
+
+      "lineshapeGaussian",
+      "lineshapeLorentzian",
 
       "rangeMin",
       "rangeMax",

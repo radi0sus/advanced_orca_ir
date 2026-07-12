@@ -11,7 +11,7 @@ This version keeps the main idea of the CLI tool:
 
 - read an ORCA output file,
 - extract the `IR SPECTRUM` section,
-- combine the stick spectrum with a Gaussian-broadened spectrum,
+- combine the stick spectrum with a Gaussian- or Lorentzian-broadened spectrum,
 - detect and label peaks,
 - export the resulting spectrum.
 
@@ -41,13 +41,14 @@ Supported display options include:
 
 - normalized mode (absorption/intensity or transmittance-style),
 - physical ε + km/mol mode (dual-axis, see below),
+- Gaussian/Lorentzian broadening toggle (see below),
 - high-to-low or low-to-high wavenumber axis,
 - adjustable displayed wavenumber range,
 - grid toggle,
 - stick spectrum toggle,
 - peak label toggle,
-- single Gaussian components,
-- filled transparent rainbow Gaussian components.
+- single peak components (Gaussian or Lorentzian, depending on the selected broadening),
+- filled transparent rainbow peak components.
 
 ---
 
@@ -55,7 +56,7 @@ Supported display options include:
 
 Instead of command-line options or editing variables in the Python script, the web app provides live UI controls for:
 
-- Gaussian line width / HWHM,
+- Gaussian/Lorentzian line width / HWHM,
 - wavenumber shift,
 - normalization factor,
 - peak detection prominence,
@@ -76,6 +77,32 @@ If negative frequencies are found, a warning is shown, but spectrum generation c
 
 ---
 
+### Gaussian / Lorentzian broadening toggle
+
+The broadening lineshape used to build the spectrum can be switched between
+Gaussian (default) and Lorentzian via the **Broadening** control in the
+"Spectrum" section.
+
+Both lineshapes are parameterized by the same **HWHM** (half width at half
+maximum) slider, and both reach the mode's full peak height at the line
+center:
+
+```text
+gaussian(x)   = intensity · exp(-ln2 · ((center - x) / HWHM)^2)
+lorentzian(x) = intensity · HWHM² / ((center - x)² + HWHM²)
+```
+
+The choice affects the broadened sum spectrum, the physical ε + km/mol
+curve, single peak components, and filled single peak components
+simultaneously — everything derives from the same underlying peak
+function. Peak detection, sticks, and the experimental overlay are
+unaffected, since they operate on unbroadened or shape-agnostic data.
+
+The current selection is shown in "Info & metadata" (`Lineshape`) and
+reflected in the plot subtitle.
+
+---
+
 ### Physical y-axis mode (ε + km/mol)
 
 In addition to the normalized display, the app offers a second, physical
@@ -83,7 +110,8 @@ y-axis mode showing a dual-axis spectrum in the style of Multiwfn's IR
 plots:
 
 - the **left axis** shows the molar absorption coefficient ε in
-  L·mol⁻¹·cm⁻¹, as a broadened Gaussian curve,
+  L·mol⁻¹·cm⁻¹, as a broadened curve (Gaussian or Lorentzian, depending on
+  the selected broadening),
 - the **right axis** shows the IR intensity in km/mol, as unbroadened
   sticks at each mode's frequency.
 
@@ -91,12 +119,13 @@ plots:
 an area-normalized conversion, independent of the parsed ORCA version:
 
 ```text
-epsilon(x) = kmMolCurve(x) × [100 × sqrt(ln2/π) / HWHM]
+epsilon(x) = kmMolCurve(x) × [100 × sqrt(ln2/π) / HWHM]     (Gaussian)
+epsilon(x) = kmMolCurve(x) × [100 / (π × HWHM)]              (Lorentzian)
 ```
 
 This follows the convention used by Multiwfn for IR/Raman/VCD/ROA
-spectra (Gaussian broadening, area under the ε(ν) curve equals
-100 × intensity in km/mol). The formula was validated numerically against
+spectra (area under the ε(ν) curve equals 100 × intensity in km/mol,
+for either lineshape). Both formulas were validated numerically against
 Multiwfn reference spectra and matched to 6 significant figures.
 
 Because this mode shows absolute physical quantities rather than a
@@ -158,7 +187,8 @@ Where:
 - `transmittance_percent` is the normalized transmittance-style spectrum,
 - `abs_norm` is the normalized absorption spectrum with maximum intensity = 1,
 - `abs_scaled` is the normalized absorption spectrum multiplied by the selected normalization factor,
-- `intensity_kmmol` is the unnormalized, broadened spectrum in km/mol,
+- `intensity_kmmol` is the unnormalized, broadened spectrum in km/mol
+  (Gaussian or Lorentzian, depending on the selected broadening),
 - `epsilon_Lmolcm` is the derived molar absorption coefficient ε in L·mol⁻¹·cm⁻¹ (see "Physical y-axis mode" above).
 
 The last two columns are exported unconditionally, independent of the currently selected y-axis mode.

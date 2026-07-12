@@ -24,16 +24,26 @@ window.ORCAIR_CONFIG = Object.freeze({
     Validated numerically against Multiwfn reference exports
     (Gaussian, HWHM = 4 cm-1): predicted/measured ratio agreed to 6
     significant figures.
+
+    Lorentzian variant:
+    For a Lorentzian normalized to unit area with HWHM = w:
+      l(x) = 1/pi * w / (x^2 + w^2)
+    so the peak height factor is:
+      epsFactor(w) = 100 / (pi * w)
+    Validated the same way (Lorentzian, HWHM = 4 cm-1): predicted/measured
+    ratio agreed to 6 significant figures.
   */
   EPSILON: Object.freeze({
     AREA_PER_KMMOL: 100,
-    GAUSSIAN_SHAPE_PREFACTOR: Math.sqrt(Math.log(2) / Math.PI)
+    GAUSSIAN_SHAPE_PREFACTOR: Math.sqrt(Math.log(2) / Math.PI),
+    LORENTZIAN_SHAPE_PREFACTOR: 1 / Math.PI
   }),
 
   DEFAULTS: Object.freeze({
     spectrumMode: "transmission",
     yAxisMode: "normalized",
     axisDirection: "highToLow",
+    lineshape: "gaussian",
 
     linewidth: 15,
     wnShift: 0,

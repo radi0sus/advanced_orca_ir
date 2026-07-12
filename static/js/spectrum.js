@@ -27,6 +27,10 @@ window.ORCAIR_SPECTRUM = (() => {
     const shift = sanitizeNumber(uiState.wnShift, config.DEFAULTS.wnShift);
     const normFactor = sanitizePositiveNumber(uiState.normFactor, config.DEFAULTS.normFactor);
 
+    const lineshape =
+      uiState.lineshape === "lorentzian" ? "lorentzian" : config.DEFAULTS.lineshape ?? "gaussian";
+    const peakFn = lineshape === "lorentzian" ? lorentzian : gaussian;
+
     const frequencyScaling = getFrequencyScaling(parsedOrca, uiState, config);
     const correctedFrequencies = frequencies.map((freq) => {
       return freq * frequencyScaling.effectiveFactor + shift;
@@ -51,7 +55,7 @@ window.ORCAIR_SPECTRUM = (() => {
       const gaussianY = new Array(x.length);
 
       for (let j = 0; j < x.length; j++) {
-        const y = gaussian(intensity, center, x[j], linewidth);
+        const y = peakFn(intensity, center, x[j], linewidth);
         gaussianY[j] = y;
         rawSumY[j] += y;
       }
@@ -80,12 +84,17 @@ window.ORCAIR_SPECTRUM = (() => {
     */
     const epsilonConfig = config.EPSILON ?? {
       AREA_PER_KMMOL: 100,
-      GAUSSIAN_SHAPE_PREFACTOR: Math.sqrt(Math.log(2) / Math.PI)
+      GAUSSIAN_SHAPE_PREFACTOR: Math.sqrt(Math.log(2) / Math.PI),
+      LORENTZIAN_SHAPE_PREFACTOR: 1 / Math.PI
     };
 
+    const shapePrefactor =
+      lineshape === "lorentzian"
+        ? epsilonConfig.LORENTZIAN_SHAPE_PREFACTOR
+        : epsilonConfig.GAUSSIAN_SHAPE_PREFACTOR;
+
     const epsFactor =
-      (epsilonConfig.AREA_PER_KMMOL * epsilonConfig.GAUSSIAN_SHAPE_PREFACTOR) /
-      linewidth;
+      (epsilonConfig.AREA_PER_KMMOL * shapePrefactor) / linewidth;
 
     const kmMolY = rawSumY;
     const epsilonY = rawSumY.map((y) => y * epsFactor);
@@ -189,7 +198,8 @@ window.ORCAIR_SPECTRUM = (() => {
         maxEpsilon,
         frequencyScaleFactorApp: frequencyScaling.appFactor,
         frequencyScaleFactorOrca: frequencyScaling.orcaFactor,
-        frequencyScaleFactorEffective: frequencyScaling.effectiveFactor
+        frequencyScaleFactorEffective: frequencyScaling.effectiveFactor,
+        lineshape
       }
     };
   }
@@ -218,6 +228,15 @@ window.ORCAIR_SPECTRUM = (() => {
     return amplitude * Math.exp(
       -(Math.log(2) * ((center - x) / linewidth) ** 2)
     );
+  }
+
+  /*
+    Lorentzian peak, parameterized by HWHM (linewidth), matching the
+    height/width convention of gaussian() above: both return `amplitude`
+    exactly at x = center, and fall to amplitude/2 at |x - center| = linewidth.
+  */
+  function lorentzian(amplitude, center, x, linewidth) {
+    return amplitude * (linewidth ** 2) / ((center - x) ** 2 + linewidth ** 2);
   }
 
   function buildXRange(correctedFrequencies, spectrumConfig) {
@@ -284,6 +303,7 @@ window.ORCAIR_SPECTRUM = (() => {
 
   return {
     buildSpectrum,
-    gaussian
+    gaussian,
+    lorentzian
   };
 })();

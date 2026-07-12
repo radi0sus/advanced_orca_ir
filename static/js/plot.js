@@ -161,6 +161,10 @@ window.ORCAIR_PLOT = (() => {
     };
   }
 
+  function getLineshapeLabel(spectrum) {
+    return spectrum?.stats?.lineshape === "lorentzian" ? "Lorentzian" : "Gaussian";
+  }
+
   function buildPhysicalGaussianTraces(spectrum, colors) {
     const x = [];
     const y = [];
@@ -187,7 +191,7 @@ window.ORCAIR_PLOT = (() => {
         y,
         type: "scatter",
         mode: "lines",
-        name: "Single Gaussians",
+        name: `Single ${getLineshapeLabel(spectrum)}s`,
         yaxis: "y",
         line: {
           color: colors.gaussian,
@@ -260,7 +264,7 @@ window.ORCAIR_PLOT = (() => {
         mode: "lines",
         fill: "toself",
         fillcolor: fillColor,
-        name: `Filled Gaussian ${gaussian.mode}`,
+        name: `Filled ${getLineshapeLabel(spectrum)} ${gaussian.mode}`,
         yaxis: "y",
         line: {
           color: lineColor,
@@ -446,7 +450,7 @@ window.ORCAIR_PLOT = (() => {
         y,
         type: "scatter",
         mode: "lines",
-        name: "Single Gaussians",
+        name: `Single ${getLineshapeLabel(spectrum)}s`,
         line: {
           color: colors.gaussian,
           width: 0.8,
@@ -515,7 +519,7 @@ window.ORCAIR_PLOT = (() => {
         mode: "lines",
         fill: "toself",
         fillcolor: fillColor,
-        name: `Filled Gaussian ${gaussian.mode}`,
+        name: `Filled ${getLineshapeLabel(spectrum)} ${gaussian.mode}`,
         line: {
           color: lineColor,
           width: 0.45
