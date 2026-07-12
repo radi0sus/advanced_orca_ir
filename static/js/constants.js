@@ -6,7 +6,19 @@ window.ORCAIR_CONFIG = Object.freeze({
   SPECTRUM: Object.freeze({
     X_STEP: 1,
     WN_PADDING: 150,
-    FORCE_X_MIN_ZERO: true
+    FORCE_X_MIN_ZERO: true,
+
+    /*
+      Upper x-axis padding must grow with the HWHM (linewidth), or broad
+      peaks near the edge of the frequency range get visibly clipped.
+      Lorentzian tails decay much slower than Gaussian tails (~1/w^2 vs.
+      exponential), so they need a larger multiple of the HWHM to look
+      un-clipped. WN_PADDING above is used as an absolute floor.
+      WN_MAX is a hard ceiling so the axis never grows without bound.
+    */
+    PADDING_HWHM_MULTIPLIER_GAUSSIAN: 6,
+    PADDING_HWHM_MULTIPLIER_LORENTZIAN: 20,
+    WN_MAX: 4000
   }),
 
   /*

@@ -36,7 +36,7 @@ window.ORCAIR_SPECTRUM = (() => {
       return freq * frequencyScaling.effectiveFactor + shift;
     });
 
-    const x = buildXRange(correctedFrequencies, config.SPECTRUM);
+    const x = buildXRange(correctedFrequencies, config.SPECTRUM, linewidth, lineshape);
     const rawSumY = new Array(x.length).fill(0);
 
     const shouldStoreSingleGaussians = Boolean(
@@ -239,9 +239,8 @@ window.ORCAIR_SPECTRUM = (() => {
     return amplitude * (linewidth ** 2) / ((center - x) ** 2 + linewidth ** 2);
   }
 
-  function buildXRange(correctedFrequencies, spectrumConfig) {
+  function buildXRange(correctedFrequencies, spectrumConfig, linewidth, lineshape) {
     const step = spectrumConfig.X_STEP;
-    const padding = spectrumConfig.WN_PADDING;
 
     const finiteFrequencies = correctedFrequencies.filter(Number.isFinite);
 
@@ -252,11 +251,31 @@ window.ORCAIR_SPECTRUM = (() => {
     const maxFreq = Math.max(...finiteFrequencies);
 
     /*
-      Keep the lower bound at 0 cm⁻¹, matching the original Python script.
-      The upper bound includes padding for Gaussian broadening.
+      Upper padding scales with the HWHM so broad peaks near the edge of
+      the range don't get visibly clipped. Lorentzian lines need a larger
+      multiple of the HWHM than Gaussian lines because their tails decay
+      much more slowly. WN_PADDING is used as an absolute floor so narrow
+      lines still get a sensible minimum margin.
+    */
+    const multiplier =
+      lineshape === "lorentzian"
+        ? spectrumConfig.PADDING_HWHM_MULTIPLIER_LORENTZIAN
+        : spectrumConfig.PADDING_HWHM_MULTIPLIER_GAUSSIAN;
+
+    const scaledPadding = Number.isFinite(linewidth) ? multiplier * linewidth : 0;
+    const padding = Math.max(spectrumConfig.WN_PADDING, scaledPadding);
+
+    /*
+      Keep the lower bound fixed at 0 cm⁻¹ (matching the original Python
+      script) - it must never go negative. The upper bound gets enough
+      padding to avoid clipping broad peaks, but is hard-capped at WN_MAX
+      so the axis never grows without bound.
     */
     const xMin = 0;
-    const xMax = Math.ceil(Math.max(0, maxFreq + padding));
+    const xMax = Math.min(
+      spectrumConfig.WN_MAX,
+      Math.ceil(Math.max(0, maxFreq + padding))
+    );
 
     return rangeInclusive(xMin, xMax, step);
   }
