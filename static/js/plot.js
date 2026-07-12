@@ -138,8 +138,8 @@ window.ORCAIR_PLOT = (() => {
       },
       hovertemplate:
         "Wavenumber: %{x:.1f} cm⁻¹<br>" +
-        "ε: %{y:.2f} L·mol⁻¹·cm⁻¹<br>" +
-        "km/mol: %{customdata:.2f}<extra></extra>"
+        "ε: %{y:.2f} M⁻¹·cm⁻¹<br>" +
+        "Int.: %{customdata:.2f} km·mol⁻¹<extra></extra>"
     };
   }
 
