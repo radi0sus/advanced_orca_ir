@@ -581,9 +581,24 @@ window.ORCAIR_PLOT = (() => {
     };
   }
 
+  const PEAK_LABEL_STANDOFF_PX = 4;
+  const PEAK_LABEL_OFFSET_ABSORPTION_PX = -28;
+  const PEAK_LABEL_OFFSET_TRANSMISSION_PX = 46;
+
+  function getPeakLabelOffsetY(ui, isPhysical) {
+    if (isPhysical) {
+      return PEAK_LABEL_OFFSET_ABSORPTION_PX;
+    }
+
+    return ui.spectrumMode === "transmission"
+      ? PEAK_LABEL_OFFSET_TRANSMISSION_PX
+      : PEAK_LABEL_OFFSET_ABSORPTION_PX;
+  }
+
   function buildPeakAnnotations(spectrum, peaks, ui, peakColor, isPhysical = false) {
     const annotations = [];
     const filteredPeaks = thinPeakLabels(peaks, 15);
+    const ay = getPeakLabelOffsetY(ui, isPhysical);
 
     for (const peak of filteredPeaks) {
       const y = isPhysical
@@ -603,8 +618,15 @@ window.ORCAIR_PLOT = (() => {
         arrowsize: 1,
         arrowwidth: 1,
         arrowcolor: peakColor,
+
+        /*
+          Creates a small visual gap between the arrow/connector line
+          and the actual spectrum trace.
+        */
+        standoff: PEAK_LABEL_STANDOFF_PX,
+
         ax: 0,
-        ay: ui.spectrumMode === "transmission" ? 56 : -34,
+        ay,
         textangle: -90,
         font: {
           size: 10,
@@ -636,8 +658,10 @@ window.ORCAIR_PLOT = (() => {
   function buildPhysicalLayout({ title, spectrum, ui, annotations, colors }) {
     const xRange = buildXRange(spectrum, ui);
 
+    const epsUpperFactor = ui.showPeaks ? 1.24 : 1.12;
+
     const epsUpper = spectrum.stats.maxEpsilon > 0
-      ? spectrum.stats.maxEpsilon * 1.12
+      ? spectrum.stats.maxEpsilon * epsUpperFactor
       : 1;
 
     const kmMolUpper = spectrum.stats.maxStickIntensity > 0
@@ -657,7 +681,7 @@ window.ORCAIR_PLOT = (() => {
       paper_bgcolor: colors.paperBg,
       plot_bgcolor: colors.plotBg,
       margin: {
-        t: 72,
+        t: ui.showPeaks ? 84 : 72,
         r: 82,
         b: 96,
         l: 92
@@ -757,9 +781,9 @@ window.ORCAIR_PLOT = (() => {
       paper_bgcolor: colors.paperBg,
       plot_bgcolor: colors.plotBg,
       margin: {
-        t: 72,
+        t: ui.showPeaks && ui.spectrumMode !== "transmission" ? 84 : 72,
         r: 30,
-        b: 96,
+        b: ui.showPeaks && ui.spectrumMode === "transmission" ? 112 : 96,
         l: 82
       },
       xaxis: {
@@ -1072,10 +1096,11 @@ window.ORCAIR_PLOT = (() => {
     if (ui.spectrumMode === "transmission") {
       /*
         Transmission is displayed as percent transmittance.
-        The upper axis limit is exactly 100 %.
-        Extra space below 0 % is reserved for vertical peak labels.
+        Peak labels are placed below the dips. If labels are enabled,
+        reserve extra space below 0 % so labels do not sit too close
+        to the plot border.
       */
-      return [-30, 100];
+      return ui.showPeaks ? [-42, 100] : [-30, 100];
     }
 
     const factor = Number(ui.normFactor);
@@ -1083,7 +1108,8 @@ window.ORCAIR_PLOT = (() => {
       ? factor
       : spectrum.stats.normalizedMax;
 
-    const padding = maxY * 0.12;
+    const paddingFactor = ui.showPeaks ? 0.24 : 0.12;
+    const padding = maxY * paddingFactor;
 
     return [0, maxY + padding];
   }
