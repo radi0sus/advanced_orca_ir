@@ -157,6 +157,66 @@ button {
   padding: 13px;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Collapsible sidebar sections                                               */
+/* -------------------------------------------------------------------------- */
+
+details.sidebar-section.sidebar-collapsible {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebar-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 13px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--panel);
+}
+
+.sidebar-summary:hover {
+  background: var(--panel-soft);
+}
+
+.sidebar-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-summary::marker {
+  content: "";
+}
+
+.sidebar-summary .section-title {
+  margin: 0;
+}
+
+.sidebar-summary::after {
+  content: "▸";
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+details.sidebar-section.sidebar-collapsible[open] > .sidebar-summary {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-soft);
+}
+
+details.sidebar-section.sidebar-collapsible[open] > .sidebar-summary::after {
+  transform: rotate(90deg);
+}
+
+.sidebar-section-body {
+  padding: 13px;
+}
+
 .section-title {
   margin: 0 0 11px;
   font-size: 0.9rem;

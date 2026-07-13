@@ -24,399 +24,427 @@
       </header>
 
       <!-- File -->
-      <section class="sidebar-section">
-        <h2 class="section-title">File</h2>
+      <details class="sidebar-section sidebar-collapsible" open>
+        <summary class="sidebar-summary">
+          <h2 class="section-title">File</h2>
+        </summary>
 
-        <div class="control">
-          <label for="orcaFile">ORCA / Gaussian output file</label>
-          <input id="orcaFile" type="file" accept=".out,.log,.txt" />
-          <small>
-            Expects an ORCA output file containing an <code>IR SPECTRUM</code> section,
-            or a Gaussian output file from a frequency (<code>Freq</code>) job.
-          </small>
-        </div>
+        <div class="sidebar-section-body">
+          <div class="control">
+            <label for="orcaFile">ORCA / Gaussian output file</label>
+            <input id="orcaFile" type="file" accept=".out,.log,.txt" />
+            <small>
+              Expects an ORCA output file containing an <code>IR SPECTRUM</code> section,
+              or a Gaussian output file from a frequency (<code>Freq</code>) job.
+            </small>
+          </div>
 
-        <div id="statusText" class="status-box">
-          No file loaded.
-        </div>
+          <div id="statusText" class="status-box">
+            No file loaded.
+          </div>
 
-        <div id="warningPanel" class="warning-box hidden">
-          <strong>Warning:</strong>
-          <span id="warningText">
-            Negative frequencies / imaginary modes detected. Spectrum generation continues.
-          </span>
+          <div id="warningPanel" class="warning-box hidden">
+            <strong>Warning:</strong>
+            <span id="warningText">
+              Negative frequencies / imaginary modes detected. Spectrum generation continues.
+            </span>
+          </div>
         </div>
-      </section>
+      </details>
 
       <!-- Display -->
-      <section class="sidebar-section">
-        <h2 class="section-title">Display</h2>
+      <details class="sidebar-section sidebar-collapsible" open>
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Display</h2>
+        </summary>
 
-        <div class="control">
-          <label>Y-axis</label>
+        <div class="sidebar-section-body">
+          <div class="control">
+            <label>Y-axis</label>
 
-          <div class="segmented-control two">
-            <input
-              type="radio"
-              name="yAxisMode"
-              id="yAxisNormalized"
-              value="normalized"
-              checked
-            />
-            <label for="yAxisNormalized">Normalized</label>
+            <div class="segmented-control two">
+              <input
+                type="radio"
+                name="yAxisMode"
+                id="yAxisNormalized"
+                value="normalized"
+                checked
+              />
+              <label for="yAxisNormalized">Normalized</label>
 
-            <input
-              type="radio"
-              name="yAxisMode"
-              id="yAxisPhysical"
-              value="physical"
-            />
-            <label for="yAxisPhysical">ε + km/mol</label>
+              <input
+                type="radio"
+                name="yAxisMode"
+                id="yAxisPhysical"
+                value="physical"
+              />
+              <label for="yAxisPhysical">ε + km/mol</label>
+            </div>
+
+            <small>
+              Normalization,
+              transmission and the experimental overlay are only available
+              in Normalized mode.
+            </small>
           </div>
 
-          <small>
-            Normalization,
-            transmission and the experimental overlay are only available
-            in Normalized mode.
-          </small>
-        </div>
+          <div class="control" id="spectrumModeControl">
+            <label>Spectrum mode</label>
 
-        <div class="control" id="spectrumModeControl">
-          <label>Spectrum mode</label>
+            <div class="segmented-control two">
+              <input
+                type="radio"
+                name="spectrumMode"
+                id="modeAbs"
+                value="absorption"
+              />
+              <label for="modeAbs">Absorption</label>
 
-          <div class="segmented-control two">
-            <input
-              type="radio"
-              name="spectrumMode"
-              id="modeAbs"
-              value="absorption"
-            />
-            <label for="modeAbs">Absorption</label>
-
-            <input
-              type="radio"
-              name="spectrumMode"
-              id="modeTrans"
-              value="transmission"
-              checked
-            />
-            <label for="modeTrans">Transmission</label>
-          </div>
-        </div>
-
-        <div class="control">
-          <label>Wavenumber axis</label>
-
-          <div class="segmented-control two">
-            <input
-              type="radio"
-              name="axisDirection"
-              id="axisHighLow"
-              value="highToLow"
-              checked
-            />
-            <label for="axisHighLow">High → Low</label>
-
-            <input
-              type="radio"
-              name="axisDirection"
-              id="axisLowHigh"
-              value="lowToHigh"
-            />
-            <label for="axisLowHigh">Low → High</label>
-          </div>
-        </div>
-
-        <div class="control">
-          <label>Displayed range / cm⁻¹</label>
-
-          <div class="range-inputs">
-            <input id="rangeMin" type="number" placeholder="400" />
-            <input id="rangeMax" type="number" placeholder="4000" />
+              <input
+                type="radio"
+                name="spectrumMode"
+                id="modeTrans"
+                value="transmission"
+                checked
+              />
+              <label for="modeTrans">Transmission</label>
+            </div>
           </div>
 
-          <small>
-            Stored internally as min/max. The selected axis direction only affects plotting.
-          </small>
-        </div>
+          <div class="control">
+            <label>Wavenumber axis</label>
 
-        <button id="resetViewBtn" type="button" class="btn subtle">
-          Reset view
-        </button>
-      </section>
+            <div class="segmented-control two">
+              <input
+                type="radio"
+                name="axisDirection"
+                id="axisHighLow"
+                value="highToLow"
+                checked
+              />
+              <label for="axisHighLow">High → Low</label>
+
+              <input
+                type="radio"
+                name="axisDirection"
+                id="axisLowHigh"
+                value="lowToHigh"
+              />
+              <label for="axisLowHigh">Low → High</label>
+            </div>
+          </div>
+
+          <div class="control">
+            <label>Displayed range / cm⁻¹</label>
+
+            <div class="range-inputs">
+              <input id="rangeMin" type="number" placeholder="400" />
+              <input id="rangeMax" type="number" placeholder="4000" />
+            </div>
+
+            <small>
+              Stored internally as min/max. The selected axis direction only affects plotting.
+            </small>
+          </div>
+
+          <button id="resetViewBtn" type="button" class="btn subtle">
+            Reset view
+          </button>
+        </div>
+      </details>
 
       <!-- Spectrum -->
-      <section class="sidebar-section">
-        <h2 class="section-title">Spectrum</h2>
+      <details class="sidebar-section sidebar-collapsible">
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Spectrum properties</h2>
+        </summary>
 
-        <div class="control">
-          <label>Broadening</label>
+        <div class="sidebar-section-body">
+          <div class="control">
+            <label>Broadening</label>
 
-          <div class="segmented-control two">
+            <div class="segmented-control two">
+              <input
+                type="radio"
+                name="lineshape"
+                id="lineshapeGaussian"
+                value="gaussian"
+                checked
+              />
+              <label for="lineshapeGaussian">Gaussian</label>
+
+              <input
+                type="radio"
+                name="lineshape"
+                id="lineshapeLorentzian"
+                value="lorentzian"
+              />
+              <label for="lineshapeLorentzian">Lorentzian</label>
+            </div>
+          </div>
+
+          <div class="control">
+            <div class="range-header">
+              <label for="linewidth">Line width / HWHM</label>
+              <span id="linewidthValue" class="range-value">15 cm⁻¹</span>
+            </div>
+
             <input
-              type="radio"
-              name="lineshape"
-              id="lineshapeGaussian"
-              value="gaussian"
-              checked
-            />
-            <label for="lineshapeGaussian">Gaussian</label>
-
-            <input
-              type="radio"
-              name="lineshape"
-              id="lineshapeLorentzian"
-              value="lorentzian"
-            />
-            <label for="lineshapeLorentzian">Lorentzian</label>
-          </div>
-        </div>
-
-        <div class="control">
-          <div class="range-header">
-            <label for="linewidth">Line width / HWHM</label>
-            <span id="linewidthValue" class="range-value">15 cm⁻¹</span>
-          </div>
-
-          <input
-            id="linewidth"
-            type="range"
-            min="1"
-            max="100"
-            step="1"
-            value="15"
-          />
-        </div>
-
-        <div class="control">
-          <div class="range-header">
-            <label for="wnShift">Wavenumber shift</label>
-            <span id="wnShiftValue" class="range-value">0 cm⁻¹</span>
-          </div>
-
-          <input
-            id="wnShift"
-            type="range"
-            min="-300"
-            max="300"
-            step="1"
-            value="0"
-          />
-        </div>
-
-        <div class="control" id="normFactorControl">
-          <div class="range-header">
-            <label for="normFactor">Normalization factor</label>
-            <span id="normFactorValue" class="range-value">×1.0</span>
-          </div>
-
-          <input
-            id="normFactor"
-            type="range"
-            min="0.1"
-            max="200"
-            step="0.1"
-            value="1"
-          />
-
-          <small>
-            Default: the maximum intensity is normalized to 1.
-          </small>
-        </div>
-
-        <div class="control">
-          <div class="range-header">
-            <label for="frequencyScaleFactor">Frequency scaling factor</label>
-            <span id="frequencyScaleFactorValue" class="range-value">×1.0000</span>
-          </div>
-
-          <div class="slider-number-row">
-            <input
-              id="frequencyScaleFactor"
+              id="linewidth"
               type="range"
-              min="0.9"
-              max="1.1"
-              step="0.0001"
+              min="1"
+              max="100"
+              step="1"
+              value="15"
+            />
+          </div>
+
+          <div class="control">
+            <div class="range-header">
+              <label for="wnShift">Wavenumber shift</label>
+              <span id="wnShiftValue" class="range-value">0 cm⁻¹</span>
+            </div>
+
+            <input
+              id="wnShift"
+              type="range"
+              min="-300"
+              max="300"
+              step="1"
+              value="0"
+            />
+          </div>
+
+          <div class="control" id="normFactorControl">
+            <div class="range-header">
+              <label for="normFactor">Normalization factor</label>
+              <span id="normFactorValue" class="range-value">×1.0</span>
+            </div>
+
+            <input
+              id="normFactor"
+              type="range"
+              min="0.1"
+              max="200"
+              step="0.1"
               value="1"
             />
 
+            <small>
+              Default: the maximum intensity is normalized to 1.
+            </small>
+          </div>
+
+          <div class="control">
+            <div class="range-header">
+              <label for="frequencyScaleFactor">Frequency scaling factor</label>
+              <span id="frequencyScaleFactorValue" class="range-value">×1.0000</span>
+            </div>
+
+            <div class="slider-number-row">
+              <input
+                id="frequencyScaleFactor"
+                type="range"
+                min="0.9"
+                max="1.1"
+                step="0.0001"
+                value="1"
+              />
+
+              <input
+                id="frequencyScaleFactorInput"
+                type="text"
+                inputmode="decimal"
+                value="1.0000"
+                aria-label="Frequency scaling factor value"
+              />
+            </div>
+
+            <small>
+              Scaling factor according to NIST CCCBDB
+            </small>
+          </div>
+        </div>
+      </details>
+
+      <!-- Plot elements -->
+      <details class="sidebar-section sidebar-collapsible">
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Plot elements</h2>
+        </summary>
+
+        <div class="sidebar-section-body">
+          <div class="toggle-list">
+            <label class="toggle-row" for="showPeaks">
+              <span>
+                Peaks
+                <small>Show peak labels in the plot</small>
+              </span>
+
+              <span class="switch">
+                <input id="showPeaks" type="checkbox" checked />
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="showSticks">
+              <span>
+                Sticks
+                <small>Show calculated modes as sticks</small>
+              </span>
+
+              <span class="switch">
+                <input id="showSticks" type="checkbox" checked />
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="showGaussians">
+              <span>
+                Single peaks
+                <small>Show individual peak functions</small>
+              </span>
+
+              <span class="switch">
+                <input id="showGaussians" type="checkbox" />
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="showFilledGaussians">
+              <span>
+                Filled single peaks
+                <small>Show individual peak areas</small>
+              </span>
+
+              <span class="switch">
+                <input id="showFilledGaussians" type="checkbox" />
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="showGrid">
+              <span>
+                Grid
+                <small>Show x-axis helper grid lines</small>
+              </span>
+
+              <span class="switch">
+                <input id="showGrid" type="checkbox" checked />
+                <span class="slider"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <!-- Peak detection -->
+      <details class="sidebar-section sidebar-collapsible">
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Peak detection</h2>
+        </summary>
+
+        <div class="sidebar-section-body">
+          <div class="control">
+            <div class="range-header">
+              <label for="peakProminence">Prominence</label>
+              <span id="peakProminenceValue" class="range-value">0.050</span>
+            </div>
+
             <input
-              id="frequencyScaleFactorInput"
-              type="text"
-              inputmode="decimal"
-              value="1.0000"
-              aria-label="Frequency scaling factor value"
+              id="peakProminence"
+              type="range"
+              min="0.001"
+              max="1"
+              step="0.001"
+              value="0.05"
             />
           </div>
 
-          <small>
-           Scaling factor according to NIST CCCBDB
-          </small>
-        </div>
-      </section>
+          <div class="control">
+            <div class="range-header">
+              <label for="peakDistance">Minimum peak distance</label>
+              <span id="peakDistanceValue" class="range-value">15 cm⁻¹</span>
+            </div>
 
-      <!-- Plot elements -->
-      <section class="sidebar-section">
-        <h2 class="section-title">Plot elements</h2>
-
-        <div class="toggle-list">
-          <label class="toggle-row" for="showPeaks">
-            <span>
-              Peaks
-              <small>Show peak labels in the plot</small>
-            </span>
-
-            <span class="switch">
-              <input id="showPeaks" type="checkbox" checked />
-              <span class="slider"></span>
-            </span>
-          </label>
-
-          <label class="toggle-row" for="showSticks">
-            <span>
-              Sticks
-              <small>Show calculated modes as sticks</small>
-            </span>
-
-            <span class="switch">
-              <input id="showSticks" type="checkbox" checked />
-              <span class="slider"></span>
-            </span>
-          </label>
-
-          <label class="toggle-row" for="showGaussians">
-            <span>
-              Single peaks
-              <small>Show individual peak functions</small>
-            </span>
-
-            <span class="switch">
-              <input id="showGaussians" type="checkbox" />
-              <span class="slider"></span>
-            </span>
-          </label>
-          
-          <label class="toggle-row" for="showFilledGaussians">
-            <span>
-              Filled single peaks
-              <small>Show individual peak areas</small>
-            </span>
-          
-            <span class="switch">
-              <input id="showFilledGaussians" type="checkbox" />
-              <span class="slider"></span>
-            </span>
-          </label>          
-          
-          <label class="toggle-row" for="showGrid">
-            <span>
-              Grid
-              <small>Show x-axis helper grid lines</small>
-            </span>
-
-            <span class="switch">
-              <input id="showGrid" type="checkbox" checked />
-              <span class="slider"></span>
-            </span>
-          </label>
-        </div>
-      </section>
-
-      <!-- Peak detection -->
-      <section class="sidebar-section">
-        <h2 class="section-title">Peak detection</h2>
-
-        <div class="control">
-          <div class="range-header">
-            <label for="peakProminence">Prominence</label>
-            <span id="peakProminenceValue" class="range-value">0.050</span>
+            <input
+              id="peakDistance"
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value="15"
+            />
           </div>
-
-          <input
-            id="peakProminence"
-            type="range"
-            min="0.001"
-            max="1"
-            step="0.001"
-            value="0.05"
-          />
         </div>
-
-        <div class="control">
-          <div class="range-header">
-            <label for="peakDistance">Minimum peak distance</label>
-            <span id="peakDistanceValue" class="range-value">15 cm⁻¹</span>
-          </div>
-
-          <input
-            id="peakDistance"
-            type="range"
-            min="1"
-            max="100"
-            step="1"
-            value="15"
-          />
-        </div>
-      </section>
+      </details>
 
       <!-- Experiment -->
-      <section class="sidebar-section" id="experimentSection">
-        <h2 class="section-title">Experiment</h2>
+      <details class="sidebar-section sidebar-collapsible" id="experimentSection">
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Experimental data</h2>
+        </summary>
 
-        <div class="control">
-          <label for="expFile">Experimental CSV</label>
-          <input id="expFile" type="file" accept=".csv,.txt,.dat" />
+        <div class="sidebar-section-body">
+          <div class="control">
+            <label for="expFile">Experimental CSV</label>
+            <input id="expFile" type="file" accept=".csv,.txt,.dat" />
 
-          <small>
-            Optional overlay. Expects two columns: wavenumber and y value.
-          </small>
+            <small>
+              Optional overlay. Expects two columns: wavenumber and y value.
+            </small>
+          </div>
+
+          <div class="toggle-list">
+            <label class="toggle-row" for="showExperimental">
+              <span>
+                Experimental overlay
+                <small>Overlay calculated and experimental spectra</small>
+              </span>
+
+              <span class="switch">
+                <input id="showExperimental" type="checkbox" />
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <label class="toggle-row" for="normalizeExperimental">
+              <span>
+                Normalize experimental
+                <small>Normalize baseline and band intensities</small>
+              </span>
+
+              <span class="switch">
+                <input id="normalizeExperimental" type="checkbox" checked />
+                <span class="slider"></span>
+              </span>
+            </label>
+          </div>
         </div>
-
-        <div class="toggle-list">
-          <label class="toggle-row" for="showExperimental">
-            <span>
-              Experimental overlay
-              <small>Overlay calculated and experimental spectra</small>
-            </span>
-
-            <span class="switch">
-              <input id="showExperimental" type="checkbox" />
-              <span class="slider"></span>
-            </span>
-          </label>
-
-          <label class="toggle-row" for="normalizeExperimental">
-            <span>
-              Normalize experimental
-              <small>Normalize baseline and band intensities</small>
-            </span>
-
-            <span class="switch">
-              <input id="normalizeExperimental" type="checkbox" checked />
-              <span class="slider"></span>
-            </span>
-          </label>
-        </div>
-      </section>
+      </details>
 
       <!-- Export -->
-      <section class="sidebar-section">
-        <h2 class="section-title">Export</h2>
+      <details class="sidebar-section sidebar-collapsible" open>
+        <summary class="sidebar-summary">
+          <h2 class="section-title">Export</h2>
+        </summary>
 
-        <div class="button-stack">
-          <button id="exportPngBtn" type="button" class="btn primary">
-            PNG current view
-          </button>
+        <div class="sidebar-section-body">
+          <div class="button-stack">
+            <button id="exportPngBtn" type="button" class="btn primary">
+              PNG current view
+            </button>
 
-          <button id="exportCsvBtn" type="button" class="btn secondary">
-            CSV full range
-          </button>
+            <button id="exportCsvBtn" type="button" class="btn secondary">
+              CSV full range
+            </button>
+          </div>
+
+          <small>
+            CSV delimiter will be defined as a constant: <code>","</code>
+          </small>
         </div>
-
-        <small>
-          CSV delimiter will be defined as a constant: <code>","</code>
-        </small>
-      </section>
+      </details>
     </aside>
 
     <!-- ================================================================ -->
