@@ -99,7 +99,7 @@ window.ORCAIR_CONFIG = Object.freeze({
   }),
 
   TEXT: Object.freeze({
-    noFileLoaded: "No ORCA file loaded.",
+    noFileLoaded: "No file loaded.",
     noSpectrumLoaded: "No spectrum loaded.",
     noPeaksDetected: "No peaks detected.",
     defaultWarning:

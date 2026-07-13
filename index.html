@@ -19,7 +19,7 @@
       <header class="app-brand">
         <h1>ORCA IR Viewer</h1>
         <p>
-          View, compare, and export IR spectra from ORCA output files.
+          View, compare, and export IR spectra from ORCA or Gaussian output files.
         </p>
       </header>
 
@@ -28,15 +28,16 @@
         <h2 class="section-title">File</h2>
 
         <div class="control">
-          <label for="orcaFile">ORCA output file</label>
+          <label for="orcaFile">ORCA / Gaussian output file</label>
           <input id="orcaFile" type="file" accept=".out,.log,.txt" />
           <small>
-            Expects an ORCA output file containing an <code>IR SPECTRUM</code> section.
+            Expects an ORCA output file containing an <code>IR SPECTRUM</code> section,
+            or a Gaussian output file from a frequency (<code>Freq</code>) job.
           </small>
         </div>
 
         <div id="statusText" class="status-box">
-          No ORCA file loaded.
+          No file loaded.
         </div>
 
         <div id="warningPanel" class="warning-box hidden">

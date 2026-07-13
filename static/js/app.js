@@ -151,7 +151,7 @@
 
       updateFromCurrentState();
 
-      UI.showToast(`Loaded ORCA file: ${file.name}`);
+      UI.showToast(`Loaded ${parsed.program} file: ${file.name}`);
     } catch (error) {
       console.error(error);
 
@@ -159,9 +159,9 @@
       appState.spectrum = null;
       appState.peaks = [];
 
-      UI.setStatus("Could not parse ORCA file.");
-      UI.showWarning(error.message || "Could not parse ORCA file.");
-      UI.showToast("Could not parse ORCA file.");
+      UI.setStatus("Could not parse file.");
+      UI.showWarning(error.message || "Could not parse file.");
+      UI.showToast("Could not parse file.");
 
       updateInfoBox();
       updatePeaksBox();
@@ -335,6 +335,7 @@
 
     const filename = file ? file.name : "–";
 
+    const programName = parsed?.program ?? "ORCA";
     const orcaVersion = parsed?.orcaVersion ?? "–";
     const irSection = parsed?.irSectionFound ? "found" : "–";
     const modesParsed = parsed?.stats?.modesParsed ?? "–";
@@ -393,7 +394,7 @@
 
     const text = [
       `Filename: ${filename}`,
-      `ORCA version: ${orcaVersion}`,
+      `Program version: ${programName} ${orcaVersion}`,
       `IR section: ${irSection}`,
       `Modes parsed: ${modesParsed}`,
       `Imaginary modes: ${imaginaryModes}`,

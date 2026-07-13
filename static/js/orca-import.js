@@ -5,6 +5,71 @@ window.ORCAIR_ORCA_IMPORT = (() => {
   const NUMBER_RE = new RegExp(NUMBER_PATTERN, "g");
 
   function parseOrcaOutput(text, filename = "") {
+    /*
+      Entry point used by app.js. Auto-detects whether the file is an
+      ORCA or a Gaussian output and dispatches to the matching parser.
+      Both parsers return the same object shape so the rest of the app
+      (spectrum.js, plot.js, export.js, app.js info box) needs no changes.
+    */
+    const format = detectFileFormat(text);
+
+    if (format === "gaussian") {
+      return parseGaussianOutput(text, filename);
+    }
+
+    return parseOrcaFormat(text, filename);
+  }
+
+  function detectFileFormat(text) {
+    /*
+      Cheap signature checks, most specific first. Gaussian logs always
+      contain the "Entering Gaussian System" banner or a
+      "Gaussian NN, Revision X" line near the top; ORCA outputs contain
+      the "O   R   C   A" banner or a "Program Version" line.
+    */
+    if (
+      /Entering Gaussian System/i.test(text) ||
+      /Gaussian\s+\d+\s*,\s*Revision/i.test(text) ||
+      /This is part of the Gaussian/i.test(text)
+    ) {
+      return "gaussian";
+    }
+
+    if (
+      /\*\s*O\s+R\s+C\s+A\s*\*/.test(text) ||
+      /Program Version/i.test(text) ||
+      /IR SPECTRUM/.test(text)
+    ) {
+      return "orca";
+    }
+
+    /*
+      Fallback: a Gaussian freq job always prints this exact banner line
+      right above the frequency blocks, even if the version banner above
+      was stripped from the file for some reason.
+    */
+    if (/Harmonic frequencies \(cm\*\*-1\)/i.test(text)) {
+      return "gaussian";
+    }
+
+    /*
+      Last-resort fallback for partial/incomplete Gaussian snippets that
+      contain neither the version banner nor the section header (e.g. a
+      copy-pasted excerpt) - the "Frequencies ---"/"IR Inten(sities) ---"
+      line pair is distinctive enough to identify Gaussian's format on
+      its own.
+    */
+    if (
+      /^\s*Frequencies\s*-{2,}\s+[-+]?\d/im.test(text) &&
+      /^\s*IR\s+Inten(?:sities)?\s*-{2,}\s+[-+]?\d/im.test(text)
+    ) {
+      return "gaussian";
+    }
+
+    return "orca";
+  }
+
+  function parseOrcaFormat(text, filename = "") {
     const lines = text.split(/\r?\n/);
 
     const versionInfo = detectOrcaVersion(text);
@@ -47,6 +112,7 @@ window.ORCAIR_ORCA_IMPORT = (() => {
     return {
       filename,
 
+      program: "ORCA",
       orcaVersion: versionInfo.version,
       orcaMajorVersion: versionInfo.major,
 
@@ -413,7 +479,7 @@ window.ORCAIR_ORCA_IMPORT = (() => {
     return matches ?? [];
   }
 
-  function collectImaginaryModes(vibrationalRows, irRows) {
+  function collectImaginaryModes(vibrationalRows, irRows, irSourceLabel = "IR SPECTRUM") {
     const byMode = new Map();
 
     for (const row of vibrationalRows) {
@@ -431,7 +497,7 @@ window.ORCAIR_ORCA_IMPORT = (() => {
         byMode.set(row.mode, {
           mode: row.mode,
           frequency: row.frequency,
-          source: "IR SPECTRUM"
+          source: irSourceLabel
         });
       }
     }
@@ -439,7 +505,223 @@ window.ORCAIR_ORCA_IMPORT = (() => {
     return Array.from(byMode.values()).sort((a, b) => a.mode - b.mode);
   }
 
+  function parseGaussianOutput(text, filename = "") {
+    const lines = text.split(/\r?\n/);
+
+    const versionInfo = detectGaussianVersion(text);
+    const ir = parseGaussianFrequencies(lines);
+
+    if (!ir.found) {
+      throw new Error(
+        "No 'Harmonic frequencies' section found. Is this a Gaussian frequency (Freq) job output?"
+      );
+    }
+
+    if (ir.rows.length === 0) {
+      throw new Error(
+        "'Harmonic frequencies' section found, but no 'IR Inten' data could be parsed. Was the job run with IR intensities (plain Freq, not e.g. Freq=ReadFC without IR)?"
+      );
+    }
+
+    const imaginaryModes = collectImaginaryModes([], ir.rows, "Harmonic frequencies");
+
+    const frequencies = ir.rows.map((row) => row.frequency);
+    const intensities = ir.rows.map((row) => row.intensity);
+    const modes = ir.rows.map((row) => row.mode);
+
+    const warnings = [];
+
+    if (imaginaryModes.length > 0) {
+      warnings.push(
+        `${imaginaryModes.length} negative frequencies / imaginary modes detected. Spectrum generation continues.`
+      );
+    }
+
+    const minFrequency = Math.min(...frequencies);
+    const maxFrequency = Math.max(...frequencies);
+    const maxIntensity = Math.max(...intensities);
+
+    return {
+      filename,
+
+      program: "Gaussian",
+
+      /*
+        Kept as orcaVersion/orcaMajorVersion (rather than introducing new
+        field names) so app.js's existing info-box code works unchanged
+        for both program types.
+      */
+      orcaVersion: versionInfo.version,
+      orcaMajorVersion: versionInfo.major,
+
+      /*
+        Gaussian output files don't carry a separate "apply this scaling
+        factor" directive the way ORCA can. Scaling in this app is always
+        an app-side, user-controlled setting for Gaussian files.
+      */
+      frequencyScaling: {
+        found: false,
+        factor: 1.0,
+        alreadyApplied: false,
+        rawLine: null,
+        invalid: false
+      },
+
+      irSectionFound: true,
+      irHeader: ["Frequencies", "Red.", "masses", "Frc", "consts", "IR", "Inten"],
+      intensityColumnIndex: null,
+      intensityColumnName: "IR Inten (km/mol)",
+
+      modes,
+      frequencies,
+      intensities,
+      rows: ir.rows,
+
+      vibrationalFrequenciesFound: false,
+      vibrationalFrequencies: [],
+
+      imaginaryModes,
+      warnings,
+
+      stats: {
+        modesParsed: ir.rows.length,
+        minFrequency,
+        maxFrequency,
+        maxIntensity
+      }
+    };
+  }
+
+  function detectGaussianVersion(text) {
+    const match = text.match(/Gaussian\s+(\d+)\s*,\s*Revision\s+([A-Za-z0-9.+-]+)/i);
+
+    if (!match) {
+      return {
+        version: null,
+        major: null
+      };
+    }
+
+    const major = Number.parseInt(match[1], 10);
+
+    return {
+      version: `${match[1]}, Revision ${match[2]}`,
+      major: Number.isFinite(major) ? major : null
+    };
+  }
+
+  function parseGaussianFrequencies(lines) {
+    /*
+      Gaussian frequency block layout (repeats in groups of up to 3, or
+      more with HPModes, modes per block). Two label styles exist
+      depending on print settings:
+
+      Standard precision:
+        Frequencies --     30.3513                38.2869                54.9623
+        Red. masses --      4.6426                 3.9481                 4.4136
+        Frc consts  --      0.0025                 0.0034                 0.0079
+        IR Inten    --      0.5524                 6.5809                 0.9292
+         Atom  AN      X      Y      Z        X      Y      Z        X      Y      Z
+
+      HPModes (freq=HPModes), higher precision, full-word labels, three
+      dashes, and a differently-worded displacement table header:
+        Frequencies ---   487.4740  487.4740 1269.3077 2381.0728
+        Reduced masses ---    12.8774   12.8774   15.9949   12.8774
+        Force constants ---     1.8029    1.8029   15.1833   43.0153
+        IR Intensities ---     9.2871    9.2871    0.0000   88.9346
+        Coord Atom Element:
+
+      With freq=HPModes, Gaussian prints the whole "Harmonic frequencies"
+      section TWICE back-to-back: first the HPModes (high precision)
+      block, then the ordinary standard-precision block for the exact
+      same modes. To avoid double-counting every mode (and therefore
+      doubling every peak once broadened/summed), parsing stops as soon
+      as a second "Harmonic frequencies" header is seen after the first
+      block has already produced rows - only the first (more precise,
+      when present) block is kept.
+
+      "Low frequencies ---" (translation/rotation residuals, printed once
+      near the top of the section, before any per-mode block) is
+      intentionally NOT matched, since the regex requires "Frequencies"
+      to start right after leading whitespace - "Low" would be in the way.
+    */
+    const rows = [];
+
+    let found = false;
+    let modeCounter = 0;
+    let pendingFrequencies = null;
+
+    const freqLineRe = /^\s*Frequencies\s*-{2,}\s+(.+)$/i;
+    const irLineRe = /^\s*IR\s+Inten(?:sities)?\s*-{2,}\s+(.+)$/i;
+    const atomTableRe = /^\s*(?:Atom\s+AN\s+X\s+Y\s+Z|Coord\s+Atom\s+Element)/i;
+
+    for (const line of lines) {
+      if (/^\s*Harmonic frequencies/i.test(line)) {
+        if (rows.length > 0) {
+          /*
+            Second (duplicate, lower-precision) section from HPModes -
+            stop here and keep only the first block's rows.
+          */
+          break;
+        }
+
+        found = true;
+        continue;
+      }
+
+      const freqMatch = line.match(freqLineRe);
+
+      if (freqMatch) {
+        found = true;
+        pendingFrequencies = extractNumbers(freqMatch[1]).map(Number);
+        continue;
+      }
+
+      if (!pendingFrequencies) {
+        continue;
+      }
+
+      const irMatch = line.match(irLineRe);
+
+      if (irMatch) {
+        const irValues = extractNumbers(irMatch[1]).map(Number);
+        const count = Math.min(pendingFrequencies.length, irValues.length);
+
+        for (let i = 0; i < count; i++) {
+          modeCounter += 1;
+
+          rows.push({
+            mode: modeCounter,
+            frequency: pendingFrequencies[i],
+            intensity: irValues[i],
+            rawLine: line
+          });
+        }
+
+        pendingFrequencies = null;
+        continue;
+      }
+
+      if (atomTableRe.test(line)) {
+        /*
+          Reached the displacement-vector table without ever finding an
+          "IR Inten" line for this block (e.g. intensities weren't
+          computed). Drop the pending block and keep scanning.
+        */
+        pendingFrequencies = null;
+      }
+    }
+
+    return {
+      found,
+      rows
+    };
+  }
+
   return {
-    parseOrcaOutput
+    parseOrcaOutput,
+    parseOrcaFormat,
+    parseGaussianOutput,
+    detectFileFormat
   };
 })();

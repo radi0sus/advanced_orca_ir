@@ -17,6 +17,8 @@ This version keeps the main idea of the CLI tool:
 
 The main difference is that everything now runs **locally in the browser** with an interactive user interface.
 
+Gaussian frequency-job output files (`.log`/`.out`) are also supported and are auto-detected — see [Input files](#input-files) below.
+
 No Python installation is required.
 
 ---
@@ -232,6 +234,37 @@ IR SPECTRUM
 ----------------------------------------------------------------------------
   6:     15.19   0.000033    0.17  0.000681  (-0.001989 -0.011548 -0.023317)
 ```
+
+### Gaussian output
+
+The app also accepts a Gaussian output file (`.log`/`.out`, Gaussian 09 and 16 tested) from a frequency (`Freq`) job. The format is auto-detected (no separate upload option needed) from the `Entering Gaussian System` / `Gaussian NN, Revision X` banner, or from the `Frequencies`/`IR Inten(sities)` block itself if only a partial excerpt is present.
+
+The parser reads the `Harmonic frequencies` block, matching each `Frequencies` line to its corresponding `IR Inten(sities)` line (values in km/mol). Both label styles are supported:
+
+Standard precision:
+
+```text
+ Frequencies --     30.3513                38.2869                54.9623
+ Red. masses --      4.6426                 3.9481                 4.4136
+ Frc consts  --      0.0025                 0.0034                 0.0079
+ IR Inten    --      0.5524                 6.5809                 0.9292
+```
+
+`freq=HPModes` (higher precision, full-word labels, three dashes):
+
+```text
+ Frequencies ---   487.4740  487.4740 1269.3077 2381.0728
+ Reduced masses ---    12.8774   12.8774   15.9949   12.8774
+ Force constants ---     1.8029    1.8029   15.1833   43.0153
+ IR Intensities ---     9.2871    9.2871    0.0000   88.9346
+```
+
+Notes:
+
+- `Low frequencies ---` (the translation/rotation residuals) is intentionally not treated as a vibrational mode.
+- Negative frequencies (imaginary modes) are detected the same way as for ORCA files.
+- With `freq=HPModes`, Gaussian prints the whole `Harmonic frequencies` section twice (first the high-precision block, then a standard-precision repeat of the same modes). The parser stops after the first block so modes aren't double-counted.
+- Gaussian output files don't carry ORCA-style frequency-scaling directives, so the "ORCA factor found" field is always empty for Gaussian files — any scaling is applied entirely on the app side via the frequency scale factor control.
 
 ### Experimental CSV
 
