@@ -67,6 +67,7 @@ window.ORCAIR_CONFIG = Object.freeze({
 
     showPeaks: true,
     showSticks: true,
+    showSpectrumFill: true,
     showGaussians: false,
     showFilledGaussians: false,
     showGrid: true,

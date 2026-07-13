@@ -76,11 +76,12 @@ window.ORCAIR_PLOT = (() => {
 
     /*
       Draw order:
-      1. filled Gaussian areas in the background
-      2. individual Gaussian lines
-      3. sticks
-      4. calculated summed spectrum
-      5. experimental overlay
+      1. filled single peak areas in the background
+      2. individual peak lines
+      3. calculated spectrum fill
+      4. sticks
+      5. calculated summed spectrum line
+      6. experimental overlay
     */
     if (ui.showFilledGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildFilledGaussianTraces(spectrum, ui));
@@ -88,6 +89,14 @@ window.ORCAIR_PLOT = (() => {
 
     if (ui.showGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildGaussianTraces(spectrum, ui, colors));
+    }
+
+    if (ui.showSpectrumFill !== false) {
+      const fillTrace = buildSpectrumFillTrace(spectrum, ui, colors);
+
+      if (fillTrace) {
+        traces.push(fillTrace);
+      }
     }
 
     if (ui.showSticks && spectrum.sticks.length > 0) {
@@ -110,19 +119,29 @@ window.ORCAIR_PLOT = (() => {
       Draw order:
       1. filled single Gaussian components in the background
       2. single Gaussian component lines
-      3. km/mol sticks, if enabled
-      4. invisible y2 anchor trace, if sticks are disabled
-      5. broadened summed curve
+      3. calculated ε curve fill
+      4. km/mol sticks, if enabled
+      5. invisible y2 anchor trace, if sticks are disabled
+      6. broadened summed ε curve
 
       The invisible y2 anchor trace keeps the right km/mol axis visible
       even when the stick display is switched off.
     */
+    
     if (ui.showFilledGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildPhysicalFilledGaussianTraces(spectrum));
     }
 
     if (ui.showGaussians && spectrum.gaussians.length > 0) {
       traces.push(...buildPhysicalGaussianTraces(spectrum, colors));
+    }
+
+    if (ui.showSpectrumFill !== false) {
+      const fillTrace = buildPhysicalCurveFillTrace(spectrum, colors);
+
+      if (fillTrace) {
+        traces.push(fillTrace);
+      }
     }
 
     if (ui.showSticks && spectrum.sticks.length > 0) {
@@ -292,6 +311,120 @@ window.ORCAIR_PLOT = (() => {
     }
 
     return [];
+  }
+
+  function buildSpectrumFillTrace(spectrum, ui, colors) {
+    const x = spectrum.x;
+    const y = getDisplayedSpectrumY(spectrum, ui);
+
+    if (
+      !Array.isArray(x) ||
+      !Array.isArray(y) ||
+      x.length !== y.length ||
+      x.length < 2
+    ) {
+      return null;
+    }
+
+    /*
+      In transmission mode, fill only the dip area between 100 %T
+      and the calculated transmission curve. Filling to zero would
+      cover almost the entire plot.
+    */
+    if (ui.spectrumMode === "transmission") {
+      return buildSpectrumBaselineFillTrace({
+        x,
+        y,
+        baselineY: 100,
+        colors,
+        name: "Calculated fill"
+      });
+    }
+
+    /*
+      In absorption mode, fill from the calculated curve down to zero.
+    */
+    return {
+      x,
+      y,
+      type: "scatter",
+      mode: "lines",
+      fill: "tozeroy",
+      fillcolor: colors.spectrumFill,
+      name: "Calculated fill",
+      line: {
+        color: "rgba(0,0,0,0)",
+        width: 0
+      },
+      hoverinfo: "skip",
+      showlegend: false
+    };
+  }
+
+  function buildPhysicalCurveFillTrace(spectrum, colors) {
+    const x = spectrum.x;
+    const y = spectrum.epsilonY;
+
+    if (
+      !Array.isArray(x) ||
+      !Array.isArray(y) ||
+      x.length !== y.length ||
+      x.length < 2
+    ) {
+      return null;
+    }
+
+    /*
+      In physical mode, the calculated curve is ε on the primary y-axis.
+      Fill from ε down to zero.
+    */
+    return {
+      x,
+      y,
+      type: "scatter",
+      mode: "lines",
+      fill: "tozeroy",
+      fillcolor: colors.spectrumFill,
+      name: "ε fill",
+      yaxis: "y",
+      line: {
+        color: "rgba(0,0,0,0)",
+        width: 0
+      },
+      hoverinfo: "skip",
+      showlegend: false
+    };
+  }
+
+  function buildSpectrumBaselineFillTrace({ x, y, baselineY, colors, name }) {
+    const polygonX = [];
+    const polygonY = [];
+
+    for (let i = 0; i < x.length; i++) {
+      polygonX.push(x[i]);
+      polygonY.push(y[i]);
+    }
+
+    for (let i = x.length - 1; i >= 0; i--) {
+      polygonX.push(x[i]);
+      polygonY.push(baselineY);
+    }
+
+    return {
+      x: polygonX,
+      y: polygonY,
+      type: "scatter",
+      mode: "lines",
+      fill: "toself",
+      fillcolor: colors.spectrumFill,
+      name,
+      line: {
+        color: "rgba(0,0,0,0)",
+        width: 0
+      },
+      hoverinfo: "skip",
+      showlegend: false
+    };
   }
 
   function buildPhysicalCurveTrace(spectrum, colors) {
@@ -1145,6 +1278,7 @@ window.ORCAIR_PLOT = (() => {
         axis: "#e6edf3",
         grid: "rgba(230,237,243,0.12)",
         spectrum: "#7fb3d5",
+        spectrumFill: "rgba(127,179,213,0.07)",
         sticks: "#cbd5e1",
         gaussian: "rgba(159,176,191,0.55)",
         peak: "#f1948a",
@@ -1162,6 +1296,7 @@ window.ORCAIR_PLOT = (() => {
       axis: "#1f2a33",
       grid: "rgba(31,42,51,0.10)",
       spectrum: "#1a5276",
+      spectrumFill: "rgba(26,82,118,0.055)",
       sticks: "#475569",
       gaussian: "rgba(91,107,121,0.45)",
       peak: "#922b21",

@@ -166,6 +166,7 @@ window.ORCAIR_UI = (() => {
 
       showPeaks: $("showPeaks").checked,
       showSticks: $("showSticks").checked,
+      showSpectrumFill: $("showSpectrumFill").checked,
       showGaussians: $("showGaussians").checked,
       showFilledGaussians: $("showFilledGaussians").checked,
       showGrid: $("showGrid").checked,
@@ -225,6 +226,9 @@ window.ORCAIR_UI = (() => {
 
     if (state.showPeaks !== undefined) $("showPeaks").checked = state.showPeaks;
     if (state.showSticks !== undefined) $("showSticks").checked = state.showSticks;
+    if (state.showSpectrumFill !== undefined) {
+      $("showSpectrumFill").checked = state.showSpectrumFill;
+    }
     if (state.showGaussians !== undefined) $("showGaussians").checked = state.showGaussians;
     if (state.showFilledGaussians !== undefined) {
       $("showFilledGaussians").checked = state.showFilledGaussians;
@@ -288,6 +292,7 @@ window.ORCAIR_UI = (() => {
 
       "showPeaks",
       "showSticks",
+      "showSpectrumFill",
       "showGaussians",
       "showFilledGaussians",
       "showGrid",
