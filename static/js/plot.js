@@ -1236,7 +1236,7 @@ window.ORCAIR_PLOT = (() => {
         reserve extra space below 0 % so labels do not sit too close
         to the plot border.
       */
-      return ui.showPeaks ? [-42, 100] : [-30, 100];
+      return ui.showPeaks ? [-24, 100] : [-4, 100];
     }
 
     const factor = Number(ui.normFactor);
