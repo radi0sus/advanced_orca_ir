@@ -90,8 +90,8 @@ maximum) slider, and both reach the mode's full peak height at the line
 center:
 
 ```text
-gaussian(x)   = intensity · exp(-ln2 · ((center - x) / HWHM)^2)
-lorentzian(x) = intensity · HWHM² / ((center - x)² + HWHM²)
+gaussian(x)   = intensity × exp(−ln2 × ((center − x) / HWHM)²)
+lorentzian(x) = intensity × HWHM² / ((center − x)² + HWHM²)
 ```
 
 The choice affects the broadened sum spectrum, the physical ε + km/mol
@@ -121,8 +121,8 @@ plots:
 an area-normalized conversion, independent of the parsed ORCA version:
 
 ```text
-epsilon(x) = kmMolCurve(x) × [100 × sqrt(ln2/π) / HWHM]     (Gaussian)
-epsilon(x) = kmMolCurve(x) × [100 / (π × HWHM)]              (Lorentzian)
+ε(x) = kmMolCurve(x) × 100·√(ln2/π) / HWHM        (Gaussian)
+ε(x) = kmMolCurve(x) × 100 / (π·HWHM)             (Lorentzian)
 ```
 
 This follows the convention used by Multiwfn for IR/Raman/VCD/ROA
@@ -139,6 +139,10 @@ disabled while it is active:
 - the normalization factor,
 - the experimental CSV overlay (which is normalized to a 0–1 scale and
   not on a comparable absolute axis).
+
+Note: only the ε curve is drawn; the km/mol axis scales the sticks only, 
+and its range is set independently, so curve and sticks are not meant to 
+align pixel-for-pixel.
 
 The exported CSV and the peaks list always include both the km/mol and ε
 values, regardless of which y-axis mode is currently displayed.
@@ -253,10 +257,10 @@ Standard precision:
 `freq=HPModes` (higher precision, full-word labels, three dashes):
 
 ```text
- Frequencies ---   487.4740  487.4740 1269.3077 2381.0728
- Reduced masses ---    12.8774   12.8774   15.9949   12.8774
+ Frequencies     ---   487.4740  487.4740 1269.3077 2381.0728
+ Reduced masses  ---    12.8774   12.8774   15.9949   12.8774
  Force constants ---     1.8029    1.8029   15.1833   43.0153
- IR Intensities ---     9.2871    9.2871    0.0000   88.9346
+ IR Intensities  ---     9.2871    9.2871    0.0000   88.9346
 ```
 
 Notes:
