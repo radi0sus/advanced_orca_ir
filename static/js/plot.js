@@ -867,23 +867,26 @@ window.ORCAIR_PLOT = (() => {
         zeroline: false
       },
       yaxis2: {
-        title: {
-          text: "IR intensity / km·mol⁻¹",
-          font: {
-            size: 14,
-            color: colors.text
-          }
-        },
+        title: ui.showSticks
+          ? {
+              text: "IR intensity / km·mol⁻¹",
+              font: {
+                size: 14,
+                color: colors.text
+              }
+            }
+          : { text: "" },
         range: [0, kmMolUpper],
         overlaying: "y",
         side: "right",
         showline: true,
         linecolor: colors.axis,
         linewidth: 1.4,
-        ticks: "outside",
+        ticks: ui.showSticks ? "outside" : "",
         ticklen: 6,
         tickwidth: 1.1,
         tickcolor: colors.axis,
+        showticklabels: Boolean(ui.showSticks),
         tickfont: {
           color: colors.text
         },
