@@ -168,9 +168,42 @@ The first two numeric columns are used as:
 wavenumber, y value
 ```
 
-The experimental spectrum can be shown together with the calculated ORCA spectrum.
+#### Data type detection (%T vs. Abs)
+
+Experimental y values can be either `%T` (transmittance) or `Abs`-like
+(absorbance, or an absorbance-like quantity such as the molar absorption
+coefficient ε, which behaves the same way for this purpose: non-negative,
+peaks pointing up, unbounded above).
+
+A **Auto | %T | Abs** dropdown next to the file input controls how the
+loaded column is interpreted:
+
+- **Auto** (default) detects the type automatically:
+  1. If the CSV header names the column (e.g. `%T`, `Transmittance`,
+     `Abs`, `Absorbance`), that takes precedence.
+  2. Otherwise, values above ~110 can't physically be `%T` and are
+     treated as `Abs`/ε-like data.
+  3. Otherwise, the curve's shape decides: `%T` spectra sit near their
+     maximum most of the time and dip down at bands; `Abs`/ε-like
+     spectra sit near their minimum most of the time and peak up at
+     bands.
+
+  The detected type is shown next to the dropdown ("detected: %T" /
+  "detected: Abs") and in the info/metadata panel.
+- **%T** / **Abs** override the detection manually. Switching the
+  dropdown re-plots instantly without re-parsing the file.
+
+The normalization behaves accordingly: `%T` data is baseline-corrected
+and converted via the Beer-Lambert relation; `Abs`/ε-like data is
+baseline-corrected directly in the absorbance/intensity domain, since
+converting arbitrary-scale ε values through `%T` would numerically
+underflow and distort the spectrum.
+
+The experimental spectrum can be shown together with the calculated ORCA spectrum, and is drawn in a distinct color from the calculated spectrum to keep the two easy to tell apart.
 
 A normalization toggle is available for easier visual comparison.
+
+When the overlay is shown, the x-axis auto-range also expands to include the experimental spectrum's range if it extends beyond the calculated spectrum's range (a manually set x-range still takes precedence).
 
 ---
 
@@ -272,7 +305,7 @@ Notes:
 
 ### Experimental CSV
 
-Experimental CSV files may contain either a header or no header.
+Experimental CSV files may contain either a header or no header, and the y column may be `%T` or `Abs`-like (see "Data type detection" above).
 
 Examples:
 
@@ -284,6 +317,15 @@ wn,%T
 ```
 
 or:
+
+```csv
+wn,Abs
+4000,0.02
+3999,0.03
+1700,0.85
+```
+
+or, without a header (type is then auto-detected from the value range/shape):
 
 ```csv
 4000,99.8
@@ -323,7 +365,7 @@ The transmittance display is a normalized transmittance-style representation der
 
 The calculated absorption spectrum is normalized to a maximum intensity of 1 before optional scaling.
 
-Experimental spectra are treated as `%T` data for overlay purposes.
+Experimental spectra are interpreted as either `%T` or `Abs`/ε-like data, either auto-detected from the CSV header or value shape, or set manually via the Auto | %T | Abs dropdown (see "Experimental CSV overlay" above).
 
 ---
 

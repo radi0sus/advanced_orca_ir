@@ -175,7 +175,8 @@ window.ORCAIR_UI = (() => {
       peakDistance: Number($("peakDistance").value),
 
       showExperimental: $("showExperimental").checked,
-      normalizeExperimental: $("normalizeExperimental").checked
+      normalizeExperimental: $("normalizeExperimental").checked,
+      experimentalDataType: $("expDataType") ? $("expDataType").value : "auto"
     };
   }
 
@@ -241,6 +242,10 @@ window.ORCAIR_UI = (() => {
       $("normalizeExperimental").checked = state.normalizeExperimental;
     }
 
+    if (state.experimentalDataType !== undefined && $("expDataType")) {
+      $("expDataType").value = state.experimentalDataType;
+    }
+
     updateSliderLabels();
   }
 
@@ -301,7 +306,8 @@ window.ORCAIR_UI = (() => {
       "peakDistance",
 
       "showExperimental",
-      "normalizeExperimental"
+      "normalizeExperimental",
+      "expDataType"
     ];
 
     for (const id of ids) {
@@ -437,6 +443,20 @@ window.ORCAIR_UI = (() => {
     $("rangeMax").value = "";
   }
 
+  function setDetectedTypeLabel(text) {
+    const label = $("expDetectedType");
+    if (!label) return;
+
+    if (!text) {
+      label.textContent = "";
+      label.classList.add("hidden");
+      return;
+    }
+
+    label.textContent = text;
+    label.classList.remove("hidden");
+  }
+
   return {
     $,
     updateSliderLabels,
@@ -456,6 +476,7 @@ window.ORCAIR_UI = (() => {
     getInfoText,
     getPeaksText,
     clearPlotPlaceholder,
-    resetRangeInputs
+    resetRangeInputs,
+    setDetectedTypeLabel
   };
 })();

@@ -174,6 +174,9 @@
 
     if (!file) {
       UI.$("showExperimental").checked = false;
+      if (UI.$("expDataType")) {
+        UI.$("expDataType").value = "auto";
+      }
       appState.ui = UI.readControls();
 
       UI.showToast("No experimental file selected.");
@@ -196,9 +199,13 @@
       /*
         User expectation:
         As soon as an experimental CSV is loaded successfully,
-        enable the overlay automatically.
+        enable the overlay automatically. Also reset the data-type
+        dropdown to Auto so the fresh detection for this file is used.
       */
       UI.$("showExperimental").checked = true;
+      if (UI.$("expDataType")) {
+        UI.$("expDataType").value = "auto";
+      }
       appState.ui = UI.readControls();
 
       if (parsedExperimental.warnings.length > 0) {
@@ -215,6 +222,9 @@
       appState.experimentalData = null;
 
       UI.$("showExperimental").checked = false;
+      if (UI.$("expDataType")) {
+        UI.$("expDataType").value = "auto";
+      }
       appState.ui = UI.readControls();
 
       UI.showToast("Could not parse experimental CSV.");
@@ -379,6 +389,25 @@
       ? yesNo(experimental.hasHeader)
       : "–";
 
+    updateDetectedTypeLabel(experimental, ui);
+
+    const experimentalDetectedType = experimental
+      ? formatDataType(experimental.detectedType)
+      : "–";
+
+    const experimentalEffectiveType = experimental
+      ? formatDataType(
+          EXPERIMENTAL_CSV.resolveEffectiveType(
+            experimental.detectedType,
+            ui.experimentalDataType
+          )
+        )
+      : "–";
+
+    const experimentalTypeMode = ui.experimentalDataType === "auto"
+      ? `auto (detected: ${experimentalDetectedType})`
+      : "manual";
+
     const isLorentzian = ui.lineshape === "lorentzian";
     const lineshapeLabel = isLorentzian ? "lorentzian" : "gaussian";
     const epsFactorLabel = isLorentzian
@@ -434,7 +463,9 @@
       `Experimental points: ${experimentalPoints}`,
       `Experimental range: ${experimentalRange}`,
       `Experimental delimiter: ${experimentalDelimiter}`,
-      `Experimental header: ${experimentalHeader}`
+      `Experimental header: ${experimentalHeader}`,
+      `Experimental data type mode: ${experimentalTypeMode}`,
+      `Experimental data type used: ${experimentalEffectiveType}`
     ].join("\n");
 
     UI.setInfo(text);
@@ -541,6 +572,19 @@
 
   function yesNo(value) {
     return value ? "yes" : "no";
+  }
+
+  function formatDataType(type) {
+    return type === "absorbance" ? "Abs" : "%T";
+  }
+
+  function updateDetectedTypeLabel(experimental, ui) {
+    if (!experimental || ui.experimentalDataType !== "auto") {
+      UI.setDetectedTypeLabel(null);
+      return;
+    }
+
+    UI.setDetectedTypeLabel(`detected: ${formatDataType(experimental.detectedType)}`);
   }
 
   function formatSigned(value) {

@@ -403,6 +403,16 @@
             <label for="expFile">Experimental CSV</label>
             <input id="expFile" type="file" accept=".csv,.txt,.dat" />
 
+            <div class="exp-type-row">
+              <label for="expDataType" class="exp-type-label">Data type</label>
+              <select id="expDataType">
+                <option value="auto">Auto</option>
+                <option value="transmittance_percent">%T</option>
+                <option value="absorbance">Abs</option>
+              </select>
+              <small id="expDetectedType" class="exp-detected-type hidden"></small>
+            </div>
+
             <small>
               Optional overlay. Expects two columns: wavenumber and y value.
             </small>

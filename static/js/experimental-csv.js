@@ -22,10 +22,15 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
     let yColumn = null;
     let headerTokens = null;
 
+    let yTypeHint = null;
+
     if (hasHeader) {
       headerTokens = firstTokens;
       xColumn = findXColumn(headerTokens);
-      yColumn = findYColumn(headerTokens, xColumn);
+
+      const yColumnResult = findYColumn(headerTokens, xColumn);
+      yColumn = yColumnResult.index;
+      yTypeHint = yColumnResult.typeHint;
     }
 
     const startIndex = hasHeader ? 1 : 0;
@@ -59,9 +64,10 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
     points.sort((a, b) => a.x - b.x);
 
     const x = points.map((point) => point.x);
-    const transmittanceY = points.map((point) => point.y);
-    const absorbanceY = transmittanceToAbsorbance(transmittanceY);
-    const normalizedAbsorbanceY = normalizeArray(absorbanceY);
+    const rawY = points.map((point) => point.y);
+
+    const detection = detectDataType(rawY, yTypeHint);
+    const derived = deriveExperimentalArrays(rawY, detection.type);
 
     if (hasHeader && (xColumn === null || yColumn === null)) {
       warnings.push(
@@ -77,21 +83,103 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
       headerTokens,
 
       x,
-      transmittanceY,
-      absorbanceY,
-      normalizedAbsorbanceY,
+      rawY,
 
-      yType: "transmittance_percent",
+      transmittanceY: derived.transmittanceY,
+      absorbanceY: derived.absorbanceY,
+      normalizedAbsorbanceY: derived.normalizedAbsorbanceY,
+
+      /*
+        detectedType/detectionMethod reflect the automatic detection only.
+        A manual override chosen in the UI does not change these; instead
+        the effective type is resolved at display time (see app.js /
+        plot.js) and derived arrays are recomputed from rawY on the fly
+        via deriveExperimentalArrays, so no re-parsing is needed.
+      */
+      detectedType: detection.type,
+      detectionMethod: detection.method,
 
       stats: {
         points: points.length,
         xMin: Math.min(...x),
         xMax: Math.max(...x),
-        yMin: Math.min(...transmittanceY),
-        yMax: Math.max(...transmittanceY)
+        yMin: Math.min(...rawY),
+        yMax: Math.max(...rawY)
       },
 
       warnings
+    };
+  }
+
+  function detectDataType(rawY, headerTypeHint) {
+    if (headerTypeHint === "transmittance_percent" || headerTypeHint === "absorbance") {
+      return {
+        type: headerTypeHint,
+        method: "header"
+      };
+    }
+
+    /*
+      Fallback heuristic (no reliable header hint available).
+
+      %T is physically bounded to roughly 0-100 (maybe a few % beyond due
+      to noise/baseline drift), so any value clearly above that can't be
+      %T at all - it must be an absorbance-like quantity. This also
+      covers epsilon (molar absorption coefficient) curves: mathematically
+      epsilon behaves just like Abs for our purposes here (non-negative,
+      peaks point up, unbounded above), so treating it as "absorbance"
+      is the right bucket even though the numeric values can run into the
+      hundreds or thousands.
+    */
+    const finiteValues = rawY.filter(Number.isFinite);
+
+    if (finiteValues.length === 0) {
+      return { type: "absorbance", method: "range" };
+    }
+
+    const maxValue = Math.max(...finiteValues);
+    const minValue = Math.min(...finiteValues);
+
+    const HARD_PERCENT_T_CEILING = 110;
+
+    if (maxValue > HARD_PERCENT_T_CEILING) {
+      return { type: "absorbance", method: "range" };
+    }
+
+    /*
+      Within the ambiguous 0-110 range, use the curve's shape instead of
+      its magnitude: %T spectra sit near their maximum most of the time
+      and dip down at absorption bands, while Abs/epsilon-like spectra
+      sit near their minimum most of the time and peak up at bands. The
+      mean position relative to the midpoint distinguishes the two.
+    */
+    const midpoint = (minValue + maxValue) / 2;
+    const mean = finiteValues.reduce((sum, value) => sum + value, 0) / finiteValues.length;
+
+    return {
+      type: mean >= midpoint ? "transmittance_percent" : "absorbance",
+      method: "range"
+    };
+  }
+
+  function deriveExperimentalArrays(rawY, type) {
+    let transmittanceY;
+    let absorbanceY;
+
+    if (type === "absorbance") {
+      absorbanceY = rawY;
+      transmittanceY = absorbanceToTransmittance(rawY);
+    } else {
+      transmittanceY = rawY;
+      absorbanceY = transmittanceToAbsorbance(rawY);
+    }
+
+    const normalizedAbsorbanceY = normalizeArray(absorbanceY);
+
+    return {
+      transmittanceY,
+      absorbanceY,
+      normalizedAbsorbanceY
     };
   }
 
@@ -206,7 +294,7 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
 
   function findYColumn(headerTokens, xColumn) {
     if (!Array.isArray(headerTokens)) {
-      return null;
+      return { index: null, typeHint: null };
     }
 
     for (let i = 0; i < headerTokens.length; i++) {
@@ -224,7 +312,7 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
         token.includes("%t") ||
         token.includes("transmission")
       ) {
-        return i;
+        return { index: i, typeHint: "transmittance_percent" };
       }
     }
 
@@ -236,16 +324,27 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
       const token = normalizeHeaderToken(headerTokens[i]);
 
       if (
-        token === "y" ||
-        token.includes("intensity") ||
         token.includes("absorbance") ||
-        token.includes("abs")
+        token === "abs" ||
+        token === "a"
       ) {
-        return i;
+        return { index: i, typeHint: "absorbance" };
       }
     }
 
-    return null;
+    for (let i = 0; i < headerTokens.length; i++) {
+      if (i === xColumn) {
+        continue;
+      }
+
+      const token = normalizeHeaderToken(headerTokens[i]);
+
+      if (token === "y" || token.includes("intensity")) {
+        return { index: i, typeHint: null };
+      }
+    }
+
+    return { index: null, typeHint: null };
   }
 
   function normalizeHeaderToken(token) {
@@ -328,6 +427,13 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
     });
   }
 
+  function absorbanceToTransmittance(absorbanceY) {
+    return absorbanceY.map((a) => {
+      const safeA = Math.max(Number(a), 0);
+      return Math.pow(10, -safeA) * 100;
+    });
+  }
+
   function normalizeArray(values) {
     const finiteValues = values.filter(Number.isFinite);
 
@@ -358,7 +464,17 @@ window.ORCAIR_EXPERIMENTAL_CSV = (() => {
     return delimiter;
   }
 
+  function resolveEffectiveType(detectedType, overrideType) {
+    if (overrideType === "transmittance_percent" || overrideType === "absorbance") {
+      return overrideType;
+    }
+
+    return detectedType;
+  }
+
   return {
-    parseExperimentalCsv
+    parseExperimentalCsv,
+    deriveExperimentalArrays,
+    resolveEffectiveType
   };
 })();

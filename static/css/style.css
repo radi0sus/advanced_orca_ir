@@ -251,7 +251,8 @@ small {
 
 input[type="file"],
 input[type="number"],
-input[type="text"] {
+input[type="text"],
+select {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -262,6 +263,32 @@ input[type="text"] {
 
 input[type="number"] {
   min-width: 0;
+}
+
+select {
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.exp-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exp-type-row .exp-type-label {
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.exp-type-row select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.exp-detected-type {
+  font-style: italic;
 }
 
 input:focus,

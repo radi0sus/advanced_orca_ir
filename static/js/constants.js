@@ -73,6 +73,7 @@ window.ORCAIR_CONFIG = Object.freeze({
     showGrid: true,
     showExperimental: false,
     normalizeExperimental: true,
+    experimentalDataType: "auto",
 
     rangeMin: null,
     rangeMax: null

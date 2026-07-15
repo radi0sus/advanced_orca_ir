@@ -900,7 +900,7 @@ window.ORCAIR_PLOT = (() => {
   }
 
   function buildLayout({ title, spectrum, experimental, ui, annotations, colors }) {
-    const xRange = buildXRange(spectrum, ui);
+    const xRange = buildXRange(spectrum, ui, experimental);
     const yRange = buildYRange(spectrum, ui);
     const showLegend = shouldShowExperimental(experimental, ui);
 
@@ -1019,14 +1019,46 @@ window.ORCAIR_PLOT = (() => {
     return spectrum.absorptionY;
   }
 
-  function getDisplayedExperimentalY(experimental, ui) {
-    if (ui.normalizeExperimental) {
-      const baselineNormalizedT = normalizeExperimentalTransmittance(
-        experimental.transmittanceY
-      );
+  function getEffectiveExperimentalType(experimental, ui) {
+    const EXPERIMENTAL_CSV = window.ORCAIR_EXPERIMENTAL_CSV;
 
-      const absorbanceY = transmittanceToAbsorbance(baselineNormalizedT);
-      const normalizedAbsorbanceY = normalizeArray(absorbanceY);
+    return EXPERIMENTAL_CSV
+      ? EXPERIMENTAL_CSV.resolveEffectiveType(
+          experimental.detectedType,
+          ui.experimentalDataType
+        )
+      : experimental.detectedType;
+  }
+
+  function getEffectiveExperimentalArrays(experimental, ui) {
+    const EXPERIMENTAL_CSV = window.ORCAIR_EXPERIMENTAL_CSV;
+    const effectiveType = getEffectiveExperimentalType(experimental, ui);
+
+    /*
+      Recompute from rawY according to the effective type. This is what
+      allows switching the Auto | %T | Abs dropdown to replot instantly
+      without re-parsing the file.
+    */
+    if (EXPERIMENTAL_CSV) {
+      return EXPERIMENTAL_CSV.deriveExperimentalArrays(experimental.rawY, effectiveType);
+    }
+
+    return {
+      transmittanceY: experimental.transmittanceY,
+      absorbanceY: experimental.absorbanceY,
+      normalizedAbsorbanceY: experimental.normalizedAbsorbanceY
+    };
+  }
+
+  function getDisplayedExperimentalY(experimental, ui) {
+    const effective = getEffectiveExperimentalArrays(experimental, ui);
+    const effectiveType = getEffectiveExperimentalType(experimental, ui);
+
+    if (ui.normalizeExperimental) {
+      const normalizedAbsorbanceY = getNormalizedExperimentalAbsorbance(
+        effective,
+        effectiveType
+      );
 
       if (ui.spectrumMode === "transmission") {
         return normalizedAbsorbanceY.map((value) => {
@@ -1042,14 +1074,74 @@ window.ORCAIR_PLOT = (() => {
     }
 
     if (ui.spectrumMode === "transmission") {
-      return experimental.transmittanceY;
+      return effective.transmittanceY;
     }
 
     const normFactor = Number(ui.normFactor) > 0 ? Number(ui.normFactor) : 1;
 
-    return experimental.normalizedAbsorbanceY.map((value) => {
+    return effective.normalizedAbsorbanceY.map((value) => {
       return value * normFactor;
     });
+  }
+
+  function getNormalizedExperimentalAbsorbance(effective, effectiveType) {
+    /*
+      %T data: baseline-correct in the %T domain (baseline near its high
+      percentile maps to ~100 %T), then convert to absorbance via the
+      Beer-Lambert relation A = -log10(T/100). This conversion is only
+      meaningful for genuine transmittance.
+    */
+    if (effectiveType === "transmittance_percent") {
+      const baselineNormalizedT = normalizeExperimentalTransmittance(
+        effective.transmittanceY
+      );
+
+      const absorbanceY = transmittanceToAbsorbance(baselineNormalizedT);
+      return normalizeArray(absorbanceY);
+    }
+
+    /*
+      Absorbance/epsilon-like data: never round-trip through %T. Epsilon
+      values can run into the hundreds or thousands, and 10^-A underflows
+      to numerically 0 there, wiping out the whole spectrum. Instead,
+      baseline-correct directly in the absorbance/intensity domain (the
+      baseline sits near the minimum, not the maximum, since these curves
+      peak upward) and normalize to max = 1.
+    */
+    return normalizeExperimentalAbsorbanceBaseline(effective.absorbanceY);
+  }
+
+  function normalizeExperimentalAbsorbanceBaseline(absorbanceY) {
+    if (!Array.isArray(absorbanceY) || absorbanceY.length === 0) {
+      return [];
+    }
+
+    const finiteValues = absorbanceY
+      .map(Number)
+      .filter(Number.isFinite);
+
+    if (finiteValues.length === 0) {
+      return absorbanceY.map(() => 0);
+    }
+
+    /*
+      Use a low percentile instead of the raw minimum to avoid single-
+      point outliers, mirroring how normalizeExperimentalTransmittance
+      uses a high percentile for %T data.
+    */
+    const baseline = percentile(finiteValues, 0.02);
+
+    const corrected = absorbanceY.map((value) => {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return NaN;
+      }
+
+      return Math.max(number - baseline, 0);
+    });
+
+    return normalizeArray(corrected);
   }
   
   function normalizeExperimentalTransmittance(transmittanceY) {
@@ -1208,9 +1300,28 @@ window.ORCAIR_PLOT = (() => {
     return Math.min(max, Math.max(min, value));
   }
 
-  function buildXRange(spectrum, ui) {
-    const fullMin = spectrum.stats.xMin ?? 0;
-    const fullMax = spectrum.stats.xMax ?? 4000;
+  function buildXRange(spectrum, ui, experimental) {
+    let fullMin = spectrum.stats.xMin ?? 0;
+    let fullMax = spectrum.stats.xMax ?? 4000;
+
+    /*
+      If an experimental overlay is shown, extend the auto x-range so it
+      covers whichever spectrum reaches further in either direction —
+      otherwise experimental data outside the calculated range would be
+      clipped when no manual range is set.
+    */
+    if (shouldShowExperimental(experimental, ui)) {
+      const expMin = Math.min(...experimental.x);
+      const expMax = Math.max(...experimental.x);
+
+      if (Number.isFinite(expMin)) {
+        fullMin = Math.min(fullMin, expMin);
+      }
+
+      if (Number.isFinite(expMax)) {
+        fullMax = Math.max(fullMax, expMax);
+      }
+    }
 
     let min = Number.isFinite(ui.rangeMin) ? ui.rangeMin : fullMin;
     let max = Number.isFinite(ui.rangeMax) ? ui.rangeMax : fullMax;
@@ -1285,8 +1396,8 @@ window.ORCAIR_PLOT = (() => {
         sticks: "#cbd5e1",
         gaussian: "rgba(159,176,191,0.55)",
         peak: "#f1948a",
-        experimental: "#d1d5db",
-        experimentalFill: "rgba(209,213,219,0.08)",
+        experimental: "#f0a63a",
+        experimentalFill: "rgba(240,166,58,0.12)",
         legendBg: "rgba(26,34,43,0.90)",
         legendBorder: "rgba(230,237,243,0.15)"
       };
@@ -1303,8 +1414,8 @@ window.ORCAIR_PLOT = (() => {
       sticks: "#475569",
       gaussian: "rgba(91,107,121,0.45)",
       peak: "#922b21",
-      experimental: "#4b5563",
-      experimentalFill: "rgba(75,85,99,0.07)",
+      experimental: "#c1690a",
+      experimentalFill: "rgba(193,105,10,0.09)",
       legendBg: "rgba(255,255,255,0.88)",
       legendBorder: "rgba(31,42,51,0.15)"
     };
