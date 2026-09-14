@@ -1,7 +1,11 @@
 > [!TIP]
 > **Advanced ORCA IR Viewer** is available as a static web app with interactive Plotly spectra, local ORCA output parsing, experimental CSV overlay, peak labels, and PNG/CSV export.  
 > 👉 Try it here: https://radi0sus.github.io/advanced_orca_ir/  
-> 👉 Original CLI tool: https://github.com/radi0sus/orca_ir
+> 👉 Original CLI tool: https://github.com/radi0sus/orca_ir   
+
+
+<img src='https://github.com/radi0sus/media/blob/main/advanced_orca_ir/advanced_orca_ir.gif' alt='show' width=640 align='center'>   
+
 
 # Advanced ORCA IR Viewer
 
