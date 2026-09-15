@@ -4,7 +4,7 @@
 > 👉 Original CLI tool: https://github.com/radi0sus/orca_ir   
 
 
-<img src='https://github.com/radi0sus/media/blob/main/advanced_orca_ir/advanced_orca_ir.gif' alt='show' width=640 align='center'>   
+<img src='https://github.com/radi0sus/media/blob/main/advanced_orca_ir/advanced_orca_ir.gif' alt='show' width=800 align='center'>   
 
 
 # Advanced ORCA IR Viewer
